@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>about + makesweird.art</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="pg-about">
+<p><a href="/">makesweird.art</a></p>
+<p>this is a reminder to make <span id="thing">weird art</span>!</p>
+<p>it doesn't have to be good. it doesn't have to make sense. it doesn't even have to be finished, it just has to exist.</p>
+<p>your streak counts how many days in a row you've shown up. miss two and it resets.</p>
+<p>one secret key. no email. no password. we store your streak, username, and nothing else.</p>
+<p>this site is made by hand, and tries to stay under ~10kb.</p>
+<p>it's also <a href="https://github.com/parka6060/makesweird.art">open source</a>.</p>
+<p>now go make something.</p>
+</main>
+<nav id="nav"><a href="/">home</a><a href="/leaderboard">leaderboard</a><a href="/chat">chat</a><a href="/updates">updates</a><a href="/about">about</a></nav>
+<script>const t=localStorage.getItem('t');if(t)document.getElementById('thing').textContent=t</script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+{
+  "name": "makesweirdart-chat",
+  "main": "party/chat.js",
+  "compatibilityDate": "2026-02-15"
+}
