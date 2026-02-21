@@ -1,4 +1,13 @@
-import { redis, json, err, limit, TTL_ANON, TTL_NAMED } from "./_redis.js";
+import {
+  redis,
+  json,
+  err,
+  limit,
+  userTz,
+  userToday,
+  TTL_ANON,
+  TTL_NAMED,
+} from "./_redis.js";
 
 const TOK_RE = /^[a-z]+-[a-z]+-\d{4}-[a-f0-9]{16}$/;
 
@@ -20,6 +29,9 @@ export async function GET(req) {
       .exec();
 
     if (!user?.registeredAt) return err("unauthorized", 401);
+    const tz = userTz(req, user);
+    const today = userToday(req, user);
+    const locked = await redis.get(`ci:${tok}:${tz}:${today}`);
     const ttl = user.name ? TTL_NAMED : TTL_ANON;
     redis
       .pipeline()
@@ -33,6 +45,8 @@ export async function GET(req) {
       lastCheckin: user.lastCheckin || "",
       thing: user.thing || "",
       hist: (hist || []).sort(),
+      today,
+      checkedIn: !!locked,
     });
   } catch {
     return err("server error", 500);

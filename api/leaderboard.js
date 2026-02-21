@@ -9,7 +9,7 @@ export async function GET(req) {
     const ah = req.headers.get("authorization");
     const tok = ah?.startsWith("Bearer ") ? ah.slice(7) : null;
 
-    const raw = await redis.zrange("lb:streak", 0, 14, {
+    const raw = await redis.zrange("lb:streak", 0, 29, {
       rev: true,
       withScores: true,
     });
@@ -28,41 +28,40 @@ export async function GET(req) {
     }
     const res = await pipe.exec();
 
+    const anonId = (id) =>
+      "anon" + (parseInt(id.slice(-6), 16) % 100).toString().padStart(2, "0");
+
     const board = [];
     let you = null;
     for (let i = 0; i < entries.length; i++) {
       const p = res[i];
-      if (!p?.name) continue;
-      if (
-        Math.round((new Date(today) - new Date(p.lastCheckin || "")) / 864e5) >
-        2
-      )
+      if (!p || !p.lastCheckin) continue;
+      if (Math.round((new Date(today) - new Date(p.lastCheckin)) / 864e5) > 3)
         continue;
-      board.push({
-        name: p.name,
+      const isYou = entries[i].id === tok;
+      const name = p.name || anonId(entries[i].id);
+      const entry = {
+        name,
         thing: p.thing || "weird art",
         streak: entries[i].score,
-      });
-      if (entries[i].id === tok)
-        you = {
-          rank: board.length,
-          name: p.name,
-          thing: p.thing || "weird art",
-          streak: entries[i].score,
-        };
-      if (board.length >= 10) break;
+        you: isYou,
+      };
+      board.push(entry);
+      if (isYou) you = { rank: board.length, ...entry };
+      if (board.length >= 20) break;
     }
 
     // user not on board
     if (tok && !you) {
       const up = res[entries.length],
         rank = res[entries.length + 1];
-      if (up?.name && rank != null)
+      if (up && rank != null)
         you = {
           rank: rank + 1,
-          name: up.name,
+          name: up.name || anonId(tok),
           thing: up.thing || "weird art",
           streak: +up.streak || 0,
+          you: true,
         };
     }
 

@@ -12,8 +12,8 @@ export async function POST(req) {
     if (!id || typeof id !== "string" || !TOK_RE.test(id))
       return err("invalid id");
 
-    const today = new Date().toISOString().slice(0, 10);
-    const created = await redis.hsetnx(`user:${id}`, "registeredAt", today);
+    const now = new Date().toISOString();
+    const created = await redis.hsetnx(`user:${id}`, "registeredAt", now);
     if (!created) return err("taken");
 
     const p = redis.pipeline();

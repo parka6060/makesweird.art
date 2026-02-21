@@ -181,10 +181,9 @@ if (location.hash.startsWith("#x")) {
     tag = $("tag"),
     dots = $("dots"),
     mk = $("mk");
-  const today = new Date().toISOString().slice(0, 10);
-  const last = L.getItem("d"),
-    gap = last ? Math.round((new Date(today) - new Date(last)) / 864e5) : 0;
-  let streak = gap >= 3 ? 0 : +L.getItem("n") || 0,
+  const today = new Date().toLocaleDateString("en-CA");
+  const last = L.getItem("d");
+  let streak = +L.getItem("n") || 0,
     hist = JSON.parse(L.getItem("h") || "[]");
   const san = (s) =>
     (s || "")
@@ -211,7 +210,7 @@ if (location.hash.startsWith("#x")) {
   t.onblur = () => {
     t.removeAttribute("contenteditable");
     save(t.textContent.trim());
-    if (last === today)
+    if (doneToday)
       api("/api/thing", { thing: san(t.textContent) }).catch(() => {});
   };
   t.onkeydown = (e) => {
@@ -220,19 +219,36 @@ if (location.hash.startsWith("#x")) {
       t.blur();
     }
   };
+  const localDate = (s) => {
+    const [y, m, d] = s.split("-");
+    return new Date(y, m - 1, d);
+  };
+  let doneToday = last === today;
   function renderDots() {
-    if (!hist.length) {
+    if (!hist.length && !streak) {
       dots.innerHTML = "";
       return;
     }
+    // backfill missing dates only if hist is shorter than streak (UTC transition fix)
+    const on = new Set(hist);
+    if (streak > on.size && hist.length) {
+      const end = localDate(hist[hist.length - 1]);
+      for (let i = 1; on.size < streak; i++) {
+        const d = new Date(end);
+        d.setDate(d.getDate() - i);
+        on.add(d.toLocaleDateString("en-CA"));
+      }
+    }
+    const sorted = [...on].sort();
     let m = 0,
       h = "";
     for (
-      let d = new Date(hist[0]);
-      d <= new Date(today);
+      let d = localDate(sorted[0]);
+      d <= localDate(sorted[sorted.length - 1]);
       d.setDate(d.getDate() + 1)
     ) {
-      if (hist.includes(d.toISOString().slice(0, 10))) {
+      const ds = d.toLocaleDateString("en-CA");
+      if (on.has(ds)) {
         h += "<span class=on></span>";
         m = 0;
       } else {
@@ -240,38 +256,67 @@ if (location.hash.startsWith("#x")) {
         h += "<span" + (m >= 2 ? " class=x" : "") + "></span>";
       }
     }
+    if (!doneToday) h += "<span></span>";
     dots.innerHTML = h;
   }
   renderDots();
   tag.textContent = streak ? `(x${streak})` : "";
   tag.title = streak ? "click to copy share link" : "";
-  if (last === today) {
-    sub.textContent = "nice. see you tomorrow.";
-    c.checked = c.disabled = true;
-    l.style.opacity = 0.4;
-    mk.textContent = "made";
-    fetch("/api/sync", { headers: { Authorization: "Bearer " + tok } })
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.streak) {
-          L.setItem("n", d.streak);
-          streak = d.streak;
-          tag.textContent = `(x${streak})`;
-        }
-        if (d.hist && d.hist.length) {
-          hist = [...new Set([...hist, ...d.hist])].sort();
-          L.setItem("h", JSON.stringify(hist));
-          renderDots();
-        }
-      })
-      .catch(() => {});
-  } else if (gap >= 3)
-    sub.textContent = "it's okay. start again whenever you're ready.";
-  else if (gap === 2)
-    sub.textContent = "missed a day \u2014 you still got this.";
-  else sub.textContent = "use your hands. keep it simple.";
+  function applyState(serverToday, checkedIn) {
+    doneToday = checkedIn;
+    tag.textContent = streak ? `(x${streak})` : "";
+    if (checkedIn) {
+      sub.textContent = "nice. see you tomorrow.";
+      c.checked = c.disabled = true;
+      l.style.opacity = 0.4;
+      mk.textContent = "made";
+    } else {
+      const last = L.getItem("d") || "";
+      const gap = last
+        ? Math.round((localDate(serverToday) - localDate(last)) / 864e5)
+        : 0;
+      if (gap >= 3) {
+        streak = 0;
+        tag.textContent = "";
+      }
+      if (gap >= 3)
+        sub.textContent = "it's okay. start again whenever you're ready.";
+      else if (gap === 2)
+        sub.textContent = "missed a day \u2014 you still got this.";
+      else {
+        sub.textContent = "use your hands. keep it simple.";
+      }
+      c.checked = c.disabled = false;
+      l.style.opacity = 1;
+      mk.textContent = "making";
+    }
+    renderDots();
+  }
+  // initial render from localStorage (fast, assume not checked in yet)
+  applyState(today, last === today);
+  // then reconcile with server (authoritative)
+  fetch("/api/sync", { headers: { Authorization: "Bearer " + tok } })
+    .then((r) => r.json())
+    .then((d) => {
+      const serverToday = d.today || today;
+      if (d.streak != null) {
+        streak = +d.streak;
+        L.setItem("n", streak);
+      }
+      if (d.lastCheckin) L.setItem("d", d.lastCheckin);
+      if (d.hist && d.hist.length) {
+        hist = [...new Set([...hist, ...d.hist])].sort();
+      }
+      L.setItem("h", JSON.stringify(hist));
+      applyState(serverToday, !!d.checkedIn);
+    })
+    .catch(() => {});
   c.onchange = () => {
     if (!c.checked) return;
+    const last = L.getItem("d") || "";
+    const gap = last
+      ? Math.round((localDate(today) - localDate(last)) / 864e5)
+      : 0;
     streak = gap <= 2 ? streak + 1 : 1;
     hist.push(today);
     L.setItem("d", today);
@@ -280,17 +325,19 @@ if (location.hash.startsWith("#x")) {
     c.disabled = true;
     l.style.opacity = 0.4;
     mk.textContent = "made";
+    doneToday = true;
     sub.textContent = "nice. see you tomorrow.";
     tag.textContent = `(x${streak})`;
     renderDots();
     api("/api/checkin", { thing: san(t.textContent) })
       .then((r) => r.json())
       .then((d) => {
-        if (d.ok && d.streak && d.streak !== streak) {
+        if (d.ok && d.streak != null && d.streak !== streak) {
           streak = d.streak;
           L.setItem("n", streak);
-          tag.textContent = `(x${streak})`;
+          tag.textContent = streak ? `(x${streak})` : "";
         }
+        if (d.today) L.setItem("d", d.today);
       })
       .catch(() => {});
   };

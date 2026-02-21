@@ -65,3 +65,16 @@ export async function auth(req) {
     .catch(() => {});
   return { tok, ...user };
 }
+
+export function userTz(req, user) {
+  return user?.tz || req.headers.get("x-vercel-ip-timezone") || "UTC";
+}
+
+export function userToday(req, user) {
+  const tz = userTz(req, user);
+  try {
+    return new Date().toLocaleDateString("en-CA", { timeZone: tz });
+  } catch {
+    return new Date().toISOString().slice(0, 10);
+  }
+}

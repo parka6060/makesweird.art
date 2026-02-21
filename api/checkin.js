@@ -4,6 +4,8 @@ import {
   err,
   auth,
   limit,
+  userTz,
+  userToday,
   TTL_ANON,
   TTL_NAMED,
 } from "./_redis.js";
@@ -18,15 +20,17 @@ export async function POST(req) {
     if (!user) return err("unauthorized", 401);
 
     const { thing } = await req.json();
-    const today = new Date().toISOString().slice(0, 10);
+    // pin timezone: use stored tz if exists, else infer from IP
+    const tz = userTz(req, user);
+    const today = userToday(req, user);
 
-    // prevent dup check-ins
-    const lock = await redis.set(`ci:${user.tok}:${today}`, 1, {
+    // one check-in per local calendar day (tz in key prevents old UTC collisions)
+    const lock = await redis.set(`ci:${user.tok}:${tz}:${today}`, 1, {
       nx: true,
-      ex: 86400,
+      ex: 172800,
     });
     if (!lock) {
-      return json({ ok: true, streak: +user.streak, dup: true });
+      return json({ ok: true, streak: +user.streak, dup: true, today });
     }
 
     // compute new streak
@@ -40,6 +44,7 @@ export async function POST(req) {
       checkins: (+user.checkins || 0) + 1,
       streak,
       lastCheckin: today,
+      tz: req.headers.get("x-vercel-ip-timezone") || user.tz || "UTC",
     };
     if (thing && typeof thing === "string") {
       const cleanThing = thing
@@ -60,7 +65,7 @@ export async function POST(req) {
     if (user.name) pipe.expire(`name:tok:${user.name}`, TTL_NAMED);
     await pipe.exec();
 
-    return json({ ok: true, streak });
+    return json({ ok: true, streak, today });
   } catch {
     return err("server error", 500);
   }

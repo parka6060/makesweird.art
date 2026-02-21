@@ -31,7 +31,6 @@
       <div id="hint">
         <span>enter to send · 3s cooldown</span><span id="cc">100</span>
       </div>
-      <p id="sm"></p>
     </main>
     <nav id="nav">
       <a href="/">home</a><a href="/leaderboard">leaderboard</a
@@ -45,12 +44,7 @@
       const myName = L.getItem("username") || "";
       const msgs = $("msgs"),
         inp = $("inp"),
-        cc = $("cc"),
-        sm = $("sm");
-      const flash = (m, ms = 2e3) => {
-        sm.textContent = m;
-        setTimeout(() => (sm.textContent = ""), ms);
-      };
+        cc = $("cc");
       let lastSig = null,
         lastData = [],
         authed = false;
@@ -83,10 +77,9 @@
               ? '<p class="sub" style="text-align:center">older messages are not kept.</p>'
               : "";
         for (const m of data) {
-          const day = m.ts.slice(0, 10);
+          const day = new Date(m.ts).toLocaleDateString("en-CA");
           if (day !== lastDay) {
-            const d = new Date(day + "T00:00:00");
-            const label = d.toLocaleDateString([], {
+            const label = new Date(m.ts).toLocaleDateString([], {
               month: "short",
               day: "numeric",
             });
@@ -150,8 +143,6 @@
             lastSig = null;
             lastData = [];
             render([]);
-          } else if (data.t === "e") {
-            flash(data.error || "error", 3e3);
           } else if (data.t === "ok") {
             authed = true;
             if (data.admin) initAdmin();
@@ -234,10 +225,7 @@
         // admin commands
         const ban = text.match(/^\/(un)?ban\s+(\S+)/);
         if (ban) {
-          if (!isAdmin) {
-            flash("not admin");
-            return;
-          }
+          if (!isAdmin) return;
           inp.value = "";
           cc.textContent = 100;
           fetch("/api/ban", {
@@ -247,21 +235,12 @@
               Authorization: "Bearer " + tok,
             },
             body: JSON.stringify({ name: ban[2], unban: !!ban[1] }),
-          })
-            .then((r) => r.json())
-            .then((d) => flash(d.error || JSON.stringify(d), 3e3))
-            .catch(() => flash("error"));
+          }).then((r) => r.json());
           return;
         }
 
-        if (!ws || ws.readyState !== 1) {
-          flash("not connected");
-          return;
-        }
-        if (!authed) {
-          flash("checking some things...");
-          return;
-        }
+        if (!ws || ws.readyState !== 1) return;
+        if (!authed) return;
         ws.send(JSON.stringify({ t: "m", text }));
         inp.value = "";
         cc.textContent = 100;

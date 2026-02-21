@@ -185,15 +185,7 @@
       }
       showName(myName);
 
-      const row = (n, t, s) =>
-        n +
-        " has been making " +
-        t +
-        " for " +
-        s +
-        " " +
-        (s === 1 ? "day" : "days") +
-        ".";
+      const trunc = (t) => (t.length > 20 ? t.slice(0, 20) + "\u2026" : t);
       function renderBoard(data) {
         $("loading").style.display = "none";
         const bd = $("board");
@@ -202,26 +194,42 @@
             '<p class="empty">no one here yet. go make something.</p>';
           return;
         }
-        const lines = data.board.map((u) => {
-          const r = row(u.name, u.thing, u.streak);
-          return u.name === myName
-            ? '<span class="you-row">' + r + "</span>"
-            : r;
+        const lines = data.board.map((u, i) => {
+          const r =
+            '<div class="entry' +
+            (u.you ? " you-row" : "") +
+            '"><span class="rank sub">#' +
+            (i + 1) +
+            "</span>" +
+            u.name +
+            " has been making " +
+            trunc(u.thing) +
+            " for " +
+            u.streak +
+            " " +
+            (u.streak === 1 ? "day" : "days") +
+            ".</div>";
+          return r;
         });
-        if (!data.board.some((u) => u.name === myName) && data.you) {
-          lines.push('<span class="gap">···</span>');
+        if (!data.board.some((u) => u.you) && data.you) {
+          lines.push('<div class="entry gap">···</div>');
           lines.push(
-            '<span class="you-row">' +
-              row(data.you.name, data.you.thing, data.you.streak) +
-              '</span> <span class="sub">#' +
+            '<div class="entry you-row"><span class="rank sub">#' +
               data.you.rank +
-              "</span>",
+              "</span>" +
+              data.you.name +
+              " has been making " +
+              trunc(data.you.thing) +
+              " for " +
+              data.you.streak +
+              " " +
+              (data.you.streak === 1 ? "day" : "days") +
+              ".</div>",
           );
         }
         bd.innerHTML =
-          '<p class="sub" style="margin-bottom:.3rem">top 10 currently making</p><p>' +
-          lines.join("<br>") +
-          "</p>";
+          '<p class="sub" style="margin-bottom:.3rem">currently making</p>' +
+          lines.join("");
       }
       if (tok) {
         const cached = sessionStorage.getItem("lb");
