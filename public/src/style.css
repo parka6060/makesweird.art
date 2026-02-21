@@ -108,6 +108,7 @@ a,
 .pg-about,
 .pg-log,
 .pg-board {
+  width: 100%;
   max-width: 450px;
   text-align: left;
 }
@@ -243,4 +244,9 @@ a,
 #msgs::-webkit-scrollbar-thumb {
   background: #271a0840;
   border-radius: 2px;
+}
+@media (max-width: 480px) {
+  body {
+    padding: 32px 12px;
+  }
 }

@@ -31,8 +31,7 @@ export async function GET(req) {
     const anonId = (id) =>
       "anon" + (parseInt(id.slice(-6), 16) % 100).toString().padStart(2, "0");
 
-    const board = [];
-    let you = null;
+    const candidates = [];
     for (let i = 0; i < entries.length; i++) {
       const p = res[i];
       if (!p || !p.lastCheckin) continue;
@@ -40,15 +39,26 @@ export async function GET(req) {
         continue;
       const isYou = entries[i].id === tok;
       const name = p.name || anonId(entries[i].id);
-      const entry = {
+      const isAnon = !p.name;
+      candidates.push({
         name,
         thing: p.thing || "weird art",
         streak: entries[i].score,
         you: isYou,
-      };
-      board.push(entry);
-      if (isYou) you = { rank: board.length, ...entry };
-      if (board.length >= 20) break;
+        isAnon,
+      });
+    }
+
+    // sort: higher streak first, then named users before anon
+    candidates.sort((a, b) => b.streak - a.streak || a.isAnon - b.isAnon);
+
+    const board = candidates.slice(0, 20).map(({ isAnon, ...rest }) => rest);
+    let you = null;
+    for (let i = 0; i < board.length; i++) {
+      if (board[i].you) {
+        you = { rank: i + 1, ...board[i] };
+        break;
+      }
     }
 
     // user not on board
