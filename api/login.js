@@ -8,9 +8,11 @@ export async function POST(req) {
     if (blocked) return blocked;
 
     const { id } = await req.json();
-    if (!id || typeof id !== "string" || !TOK_RE.test(id)) return err("invalid key");
+    if (!id || typeof id !== "string" || !TOK_RE.test(id))
+      return err("invalid key");
 
-    const [user, hist] = await redis.pipeline()
+    const [user, hist] = await redis
+      .pipeline()
       .hgetall(`user:${id}`)
       .smembers(`hist:${id}`)
       .exec();
@@ -18,10 +20,12 @@ export async function POST(req) {
     if (!user || !user.registeredAt) return err("key not found");
 
     const ttl = user.name ? TTL_NAMED : TTL_ANON;
-    redis.pipeline()
+    redis
+      .pipeline()
       .expire(`user:${id}`, ttl)
       .expire(`hist:${id}`, ttl)
-      .exec().catch(() => {});
+      .exec()
+      .catch(() => {});
 
     return json({
       ok: true,

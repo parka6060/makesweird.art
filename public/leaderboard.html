@@ -1,0 +1,246 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>leaderboard + makesweird.art</title>
+    <link rel="stylesheet" href="../src/style.css" />
+  </head>
+  <body>
+    <main id="main" class="pg-board">
+      <p><a href="/">makesweird.art</a></p>
+      <p id="greeting"></p>
+      <p id="name-msg"></p>
+      <p id="loading" class="sub">loading...</p>
+      <div id="board"></div>
+      <div class="key-area">
+        <p>
+          <span id="key-label" class="sub" style="cursor: pointer"
+            >your key ····</span
+          >
+          <span id="key-msg" style="font-size: 0.8em"></span>
+        </p>
+      </div>
+    </main>
+    <nav id="nav">
+      <a href="/">home</a><a href="/leaderboard">leaderboard</a
+      ><a href="/chat">chat</a><a href="/updates">updates</a
+      ><a href="/about">about</a>
+    </nav>
+    <script>
+      const L = localStorage,
+        $ = (id) => document.getElementById(id);
+      let tok = L.getItem("tok");
+      const api = (path, body) =>
+        fetch(path, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + tok,
+          },
+          body: JSON.stringify(body),
+        });
+      const myName = L.getItem("username") || "";
+
+      const kl = $("key-label"),
+        km = $("key-msg");
+      let keyRevealed = false;
+      kl.onclick = () => {
+        if (!keyRevealed) {
+          kl.innerHTML =
+            'your key: <span id="ktok" style="color:#3a6a9b;cursor:pointer">' +
+            tok +
+            "</span>";
+          kl.style.opacity = "1";
+          kl.style.cursor = "default";
+          km.innerHTML = '<br><a href="#" id="ki">import a different key</a>';
+          $("ktok").onclick = () => {
+            navigator.clipboard.writeText(tok);
+            const el = $("ktok"),
+              p = el.textContent;
+            el.textContent = "copied!";
+            setTimeout(() => {
+              el.textContent = p;
+            }, 1200);
+          };
+          $("ki").onclick = (e) => {
+            e.preventDefault();
+            doImport();
+          };
+          keyRevealed = true;
+          return;
+        }
+      };
+      function doImport() {
+        km.innerHTML = "";
+        kl.innerHTML =
+          'paste key: <span id="kinp" style="border-bottom:1px dashed;outline:none" contenteditable></span>';
+        kl.style.opacity = "1";
+        const inp = $("kinp");
+        inp.focus();
+        inp.onkeydown = (e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            inp.blur();
+          }
+        };
+        inp.onblur = () => {
+          const raw = inp.textContent.trim();
+          if (!raw || raw.length < 20) {
+            km.textContent = "invalid key";
+            return;
+          }
+          km.textContent = "checking...";
+          fetch("/api/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: raw }),
+          })
+            .then((r) => r.json())
+            .then((d) => {
+              if (d.error) {
+                km.textContent = d.error;
+                return;
+              }
+              tok = raw;
+              L.setItem("tok", raw);
+              if (d.name) L.setItem("username", d.name);
+              if (d.thing) L.setItem("t", d.thing);
+              if (d.lastCheckin) L.setItem("d", d.lastCheckin);
+              L.setItem("n", d.streak);
+              if (d.hist && d.hist.length)
+                L.setItem("h", JSON.stringify(d.hist));
+              km.textContent = "imported! reloading...";
+              setTimeout(() => location.reload(), 800);
+            })
+            .catch(() => {
+              km.textContent = "error";
+            });
+        };
+      }
+
+      const grt = $("greeting"),
+        nm = $("name-msg");
+      function showName(n) {
+        grt.innerHTML = n
+          ? 'you\'re <span id="uname">' + n + "</span>"
+          : 'pick a <span id="uname">name</span> for the board.';
+        const u = $("uname");
+        u.style.cssText =
+          "border-bottom:1px dashed;cursor:pointer;outline:none";
+        u.title = "click to change";
+        u.onclick = () => {
+          if (u.isContentEditable) return;
+          u.setAttribute("contenteditable", "");
+          if (!n) u.textContent = "";
+          else {
+            const r = document.createRange();
+            r.selectNodeContents(u);
+            getSelection().removeAllRanges();
+            getSelection().addRange(r);
+          }
+          u.focus();
+        };
+        u.onkeydown = (e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            u.blur();
+          }
+        };
+        u.onblur = () => {
+          u.removeAttribute("contenteditable");
+          const raw = u.textContent
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9\-_]/g, "")
+            .slice(0, 20);
+          const old = L.getItem("username");
+          if (raw.length < 2) {
+            nm.textContent = "2-20 chars, a-z 0-9 - _";
+            u.textContent = old || "name";
+            return;
+          }
+          if (raw === old) {
+            nm.textContent = "";
+            return;
+          }
+          nm.textContent = "saving...";
+          api("/api/username", { name: raw })
+            .then((r) => r.json())
+            .then((d) => {
+              if (d.error) {
+                nm.textContent = d.error;
+                u.textContent = old || "name";
+                return;
+              }
+              L.setItem("username", d.name);
+              nm.textContent = "";
+              showName(d.name);
+            })
+            .catch(() => {
+              nm.textContent = "error";
+              u.textContent = old || "name";
+            });
+        };
+      }
+      showName(myName);
+
+      const row = (n, t, s) =>
+        n +
+        " has been making " +
+        t +
+        " for " +
+        s +
+        " " +
+        (s === 1 ? "day" : "days") +
+        ".";
+      function renderBoard(data) {
+        $("loading").style.display = "none";
+        const bd = $("board");
+        if (!data.board || !data.board.length) {
+          bd.innerHTML =
+            '<p class="empty">no one here yet. go make something.</p>';
+          return;
+        }
+        const lines = data.board.map((u) => {
+          const r = row(u.name, u.thing, u.streak);
+          return u.name === myName
+            ? '<span class="you-row">' + r + "</span>"
+            : r;
+        });
+        if (!data.board.some((u) => u.name === myName) && data.you) {
+          lines.push('<span class="gap">···</span>');
+          lines.push(
+            '<span class="you-row">' +
+              row(data.you.name, data.you.thing, data.you.streak) +
+              '</span> <span class="sub">#' +
+              data.you.rank +
+              "</span>",
+          );
+        }
+        bd.innerHTML =
+          '<p class="sub" style="margin-bottom:.3rem">top 10 currently making</p><p>' +
+          lines.join("<br>") +
+          "</p>";
+      }
+      if (tok) {
+        const cached = sessionStorage.getItem("lb");
+        if (cached)
+          try {
+            renderBoard(JSON.parse(cached));
+          } catch (e) {}
+        fetch("/api/leaderboard", {
+          headers: { Authorization: "Bearer " + tok },
+        })
+          .then((r) => r.json())
+          .then((data) => {
+            sessionStorage.setItem("lb", JSON.stringify(data));
+            renderBoard(data);
+          })
+          .catch(() => {
+            $("loading").textContent = "could not load.";
+          });
+      }
+    </script>
+  </body>
+</html>

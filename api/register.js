@@ -9,7 +9,8 @@ export async function POST(req) {
     if (blocked) return blocked;
 
     const { id } = await req.json();
-    if (!id || typeof id !== "string" || !TOK_RE.test(id)) return err("invalid id");
+    if (!id || typeof id !== "string" || !TOK_RE.test(id))
+      return err("invalid id");
 
     const today = new Date().toISOString().slice(0, 10);
     const created = await redis.hsetnx(`user:${id}`, "registeredAt", today);

@@ -13,17 +13,20 @@ export async function GET(req) {
     const tok = h.slice(7);
     if (!TOK_RE.test(tok)) return err("unauthorized", 401);
 
-    const [user, hist] = await redis.pipeline()
+    const [user, hist] = await redis
+      .pipeline()
       .hgetall(`user:${tok}`)
       .smembers(`hist:${tok}`)
       .exec();
 
     if (!user?.registeredAt) return err("unauthorized", 401);
     const ttl = user.name ? TTL_NAMED : TTL_ANON;
-    redis.pipeline()
+    redis
+      .pipeline()
       .expire(`user:${tok}`, ttl)
       .expire(`hist:${tok}`, ttl)
-      .exec().catch(() => {});
+      .exec()
+      .catch(() => {});
 
     return json({
       streak: +user.streak || 0,

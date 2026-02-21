@@ -23,7 +23,7 @@ export async function POST(req) {
 
     // find their ip from chat history and ban both
     const msgs = await redis.lrange("chat", 0, -1);
-    const ip = [...msgs].reverse().find(m => m.n === clean)?.ip;
+    const ip = [...msgs].reverse().find((m) => m.n === clean)?.ip;
 
     const pipe = redis.pipeline();
     pipe.hset(`user:${tok}`, { banned: 1 });

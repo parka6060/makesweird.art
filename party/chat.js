@@ -87,7 +87,9 @@ export default class ChatRoom {
         const ttl = user.name ? 365 * 86400 : 30 * 86400;
         this.redis.expire(`user:${data.tok}`, ttl).catch(() => {});
         info.admin = !!user.admin;
-        sender.send(JSON.stringify({ t: "ok", ...(info.admin && { admin: true }) }));
+        sender.send(
+          JSON.stringify({ t: "ok", ...(info.admin && { admin: true }) }),
+        );
       } catch {
         sender.send(JSON.stringify({ t: "e", error: "auth failed" }));
       }
@@ -97,7 +99,9 @@ export default class ChatRoom {
     // send msg
     if (data.t === "m") {
       if (!info.name) {
-        sender.send(JSON.stringify({ t: "e", error: "not authenticated — reload page" }));
+        sender.send(
+          JSON.stringify({ t: "e", error: "not authenticated — reload page" }),
+        );
         return;
       }
 
@@ -110,15 +114,42 @@ export default class ChatRoom {
 
       // !share command: shares streak with the room
       if (clean === "!share") {
-        const go = await this.redis.set(`chat:cd:${info.tok}`, 1, { nx: true, ex: 3 });
-        if (!go) { sender.send(JSON.stringify({ t: "e", error: "slow down (3s)" })); return; }
+        const go = await this.redis.set(`chat:cd:${info.tok}`, 1, {
+          nx: true,
+          ex: 3,
+        });
+        if (!go) {
+          sender.send(JSON.stringify({ t: "e", error: "slow down (3s)" }));
+          return;
+        }
         const user = await this.redis.hgetall(`user:${info.tok}`);
-        if (!user || !user.streak || +user.streak < 1) { sender.send(JSON.stringify({ t: "e", error: "no streak to share" })); return; }
+        if (!user || !user.streak || +user.streak < 1) {
+          sender.send(JSON.stringify({ t: "e", error: "no streak to share" }));
+          return;
+        }
         const d = +user.streak === 1 ? "day" : "days";
-        const message = { n: info.name, t: info.name + " has been making " + (user.thing || "weird art") + " for " + user.streak + " " + d + ".", ts: new Date().toISOString(), share: true };
+        const message = {
+          n: info.name,
+          t:
+            info.name +
+            " has been making " +
+            (user.thing || "weird art") +
+            " for " +
+            user.streak +
+            " " +
+            d +
+            ".",
+          ts: new Date().toISOString(),
+          share: true,
+        };
         this.history.push(message);
         if (this.history.length > MAX_HISTORY) this.history.shift();
-        this.redis.pipeline().rpush("chat", { ...message, ip: info.ip }).ltrim("chat", -MAX_HISTORY, -1).exec().catch(() => {});
+        this.redis
+          .pipeline()
+          .rpush("chat", { ...message, ip: info.ip })
+          .ltrim("chat", -MAX_HISTORY, -1)
+          .exec()
+          .catch(() => {});
         this.party.broadcast(JSON.stringify({ t: "m", msg: message }));
         return;
       }
@@ -134,7 +165,6 @@ export default class ChatRoom {
       }
 
       const message = { n: info.name, t: clean, ts: new Date().toISOString() };
-
 
       this.history.push(message);
       if (this.history.length > MAX_HISTORY) this.history.shift();

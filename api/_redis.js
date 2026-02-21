@@ -14,7 +14,7 @@ const ratelimit = new Ratelimit({
 
 const TOK_RE = /^[a-z]+-[a-z]+-\d{4}-[a-f0-9]{16}$/;
 
-export const TTL_ANON = 30 * 86400;   // 30 days
+export const TTL_ANON = 30 * 86400; // 30 days
 export const TTL_NAMED = 365 * 86400; // 1 year
 
 export function json(data, status = 200) {
@@ -29,7 +29,10 @@ export function err(msg, status = 400) {
 }
 
 export async function limit(req) {
-  const ip = req.headers.get("x-real-ip") || req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  const ip =
+    req.headers.get("x-real-ip") ||
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    "unknown";
   const { success } = await ratelimit.limit(ip);
   if (!success) return err("slow down", 429);
   return null;
@@ -40,8 +43,12 @@ export async function auth(req) {
   if (!h || !h.startsWith("Bearer ")) return null;
   const tok = h.slice(7);
   if (!TOK_RE.test(tok)) return null;
-  const ip = req.headers.get("x-real-ip") || req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-  const [ipBanned, user] = await redis.pipeline()
+  const ip =
+    req.headers.get("x-real-ip") ||
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    "unknown";
+  const [ipBanned, user] = await redis
+    .pipeline()
     .sismember("banned:ips", ip)
     .hgetall(`user:${tok}`)
     .exec();
@@ -50,9 +57,11 @@ export async function auth(req) {
   if (user.banned) return null;
   // refresh TTL
   const ttl = user.name ? TTL_NAMED : TTL_ANON;
-  redis.pipeline()
+  redis
+    .pipeline()
     .expire(`user:${tok}`, ttl)
     .expire(`hist:${tok}`, ttl)
-    .exec().catch(() => {});
+    .exec()
+    .catch(() => {});
   return { tok, ...user };
 }

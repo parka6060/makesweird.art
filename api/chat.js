@@ -7,7 +7,10 @@ export async function GET(req) {
     if (blocked) return blocked;
 
     const raw = await redis.lrange("chat", 0, -1);
-    const data = raw.map(r => { const { ip, ...m } = r; return m; });
+    const data = raw.map((r) => {
+      const { ip, ...m } = r;
+      return m;
+    });
     return json(data);
   } catch {
     return err("server error", 500);

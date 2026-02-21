@@ -5,13 +5,12 @@ export const BANNED_USERNAMES = [
 ];
 export const BANNED_THINGS = [
   // just incase
-
 ];
 
 export function isBannedThing(text) {
   if (!text) return false;
   const lower = text.toLowerCase();
-  return BANNED_THINGS.some(t => lower.includes(t.toLowerCase()));
+  return BANNED_THINGS.some((t) => lower.includes(t.toLowerCase()));
 }
 export function isBannedUsername(name) {
   if (!name) return false;

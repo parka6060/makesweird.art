@@ -12,8 +12,13 @@ export async function POST(req) {
     const { name } = await req.json();
     if (!name || typeof name !== "string") return err("name required");
 
-    const clean = name.trim().toLowerCase().replace(/[^a-z0-9\-_]/g, "").slice(0, 20);
-    if (clean.length < 2) return err("name must be 2-20 characters (a-z, 0-9, - _)");
+    const clean = name
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9\-_]/g, "")
+      .slice(0, 20);
+    if (clean.length < 2)
+      return err("name must be 2-20 characters (a-z, 0-9, - _)");
     if (isBannedUsername(clean)) return err("name not allowed");
 
     if (user.name === clean) return json({ ok: true, name: clean });

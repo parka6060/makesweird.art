@@ -1,0 +1,271 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>chat + makesweird.art</title>
+    <link rel="stylesheet" href="../src/style.css" />
+  </head>
+  <body>
+    <main class="pg-chat">
+      <div id="header">
+        <p><a href="/">makesweird.art</a> &middot; chat</p>
+        <div id="hlinks">
+          <a id="rules-btn">rules</a>
+          <a id="clear-btn" style="display: none; color: #b33">clear</a>
+          <div id="rules">
+            &middot; be kind.<br />
+            &middot; don't impersonate.<br />
+            &middot; chats are ephemeral<br />
+          </div>
+        </div>
+      </div>
+      <div id="msgs"><p class="sub">connecting...</p></div>
+      <input
+        id="inp"
+        type="text"
+        maxlength="100"
+        placeholder="say something..."
+        autocomplete="off"
+      />
+      <div id="hint">
+        <span>enter to send · 3s cooldown</span><span id="cc">100</span>
+      </div>
+      <p id="sm"></p>
+    </main>
+    <nav id="nav">
+      <a href="/">home</a><a href="/leaderboard">leaderboard</a
+      ><a href="/chat">chat</a><a href="/updates">updates</a
+      ><a href="/about">about</a>
+    </nav>
+    <script>
+      const L = localStorage,
+        $ = (id) => document.getElementById(id);
+      const tok = L.getItem("tok") || "";
+      const myName = L.getItem("username") || "";
+      const msgs = $("msgs"),
+        inp = $("inp"),
+        cc = $("cc"),
+        sm = $("sm");
+      const flash = (m, ms = 2e3) => {
+        sm.textContent = m;
+        setTimeout(() => (sm.textContent = ""), ms);
+      };
+      let lastSig = null,
+        lastData = [],
+        authed = false;
+
+      function esc(s) {
+        return s
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+      }
+      function fmt(ts) {
+        const d = new Date(ts);
+        return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      }
+
+      function render(data) {
+        const sig = data.map((m) => m.ts).join("");
+        if (sig === lastSig) return;
+        const atBottom =
+          msgs.scrollHeight - msgs.scrollTop - msgs.clientHeight < 60;
+        lastSig = sig;
+        lastData = data;
+        if (!data.length) {
+          msgs.innerHTML = '<p class="sub">no messages yet.</p>';
+          return;
+        }
+        let lastDay = "",
+          html =
+            data.length >= 100
+              ? '<p class="sub" style="text-align:center">older messages are not kept.</p>'
+              : "";
+        for (const m of data) {
+          const day = m.ts.slice(0, 10);
+          if (day !== lastDay) {
+            const d = new Date(day + "T00:00:00");
+            const label = d.toLocaleDateString([], {
+              month: "short",
+              day: "numeric",
+            });
+            html += '<p class="day">' + label + "</p>";
+            lastDay = day;
+          }
+          const me = m.n === myName;
+          if (m.share) {
+            html +=
+              '<p class="m share"><span class="mt">' +
+              fmt(m.ts) +
+              '</span><span class="mc">' +
+              esc(m.t) +
+              "</span></p>";
+          } else {
+            html +=
+              '<p class="m' +
+              (me ? " me" : "") +
+              '"><span class="mt">' +
+              fmt(m.ts) +
+              '</span><span class="mc"><span class="mn">' +
+              esc(m.n) +
+              "</span> " +
+              esc(m.t) +
+              "</span></p>";
+          }
+        }
+        msgs.innerHTML = html;
+        if (atBottom) msgs.scrollTop = msgs.scrollHeight;
+      }
+
+      // --- PartyKit WebSocket ---
+      const PARTY_HOST = "makesweirdart-chat.parka6060.partykit.dev";
+      let ws,
+        wsRetry = 1000,
+        wsAttempts = 0;
+      function connectWS() {
+        authed = false;
+        wsAttempts++;
+        ws = new WebSocket("wss://" + PARTY_HOST + "/party/main");
+        ws.onopen = () => {
+          wsRetry = 1000;
+          wsAttempts = 0;
+          // authenticate
+          if (tok) ws.send(JSON.stringify({ t: "a", tok }));
+        };
+        ws.onmessage = (e) => {
+          let data;
+          try {
+            data = JSON.parse(e.data);
+          } catch {
+            return;
+          }
+          if (data.t === "h") {
+            lastData = data.msgs || [];
+            render(lastData);
+          } else if (data.t === "m") {
+            lastData = [...lastData, data.msg].slice(-100);
+            render(lastData);
+          } else if (data.t === "clear") {
+            lastSig = null;
+            lastData = [];
+            render([]);
+          } else if (data.t === "e") {
+            flash(data.error || "error", 3e3);
+          } else if (data.t === "ok") {
+            authed = true;
+            if (data.admin) initAdmin();
+          }
+        };
+        ws.onclose = () => {
+          if (wsAttempts >= 5) {
+            inp.disabled = true;
+            inp.placeholder = "chat is currently offline · read-only mode";
+            fetch("/api/chat")
+              .then((r) => r.json())
+              .then((d) => {
+                if (Array.isArray(d)) {
+                  lastData = d;
+                  render(d);
+                } else {
+                  msgs.innerHTML =
+                    '<p class="sub" style="text-align:center">chat temporarily unavailable.</p>';
+                }
+              })
+              .catch(() => {
+                msgs.innerHTML =
+                  '<p class="sub" style="text-align:center">chat temporarily unavailable.</p>';
+              });
+            return;
+          }
+          setTimeout(connectWS, wsRetry);
+          wsRetry = Math.min(wsRetry * 2, 15000);
+        };
+        ws.onerror = () => {
+          ws.close();
+        };
+      }
+      connectWS();
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden && (!ws || ws.readyState > 1)) connectWS();
+      });
+
+      const rulesDiv = $("rules"),
+        rulesBtn = $("rules-btn");
+      let rulesOpen = false;
+      rulesBtn.onclick = (e) => {
+        e.stopPropagation();
+        rulesOpen = !rulesOpen;
+        rulesDiv.style.display = rulesOpen ? "block" : "none";
+        rulesBtn.style.opacity = rulesOpen ? "1" : "";
+      };
+      document.addEventListener("click", () => {
+        if (rulesOpen) {
+          rulesOpen = false;
+          rulesDiv.style.display = "none";
+          rulesBtn.style.opacity = "";
+        }
+      });
+
+      let isAdmin = false;
+      function initAdmin() {
+        isAdmin = true;
+        const cb = $("clear-btn");
+        cb.style.display = "";
+        cb.onclick = () => {
+          if (!confirm("clear all messages?")) return;
+          if (ws && ws.readyState === 1)
+            ws.send(JSON.stringify({ t: "nuke." }));
+        };
+      }
+
+      if (!myName) {
+        inp.disabled = true;
+        inp.placeholder = "set a username on leaderboard to chat!";
+      }
+
+      inp.oninput = () => (cc.textContent = 100 - inp.value.length);
+      inp.onkeydown = (e) => {
+        if (e.key !== "Enter" || e.shiftKey || inp.disabled) return;
+        e.preventDefault();
+        const text = inp.value.trim();
+        if (!text) return;
+
+        // admin commands
+        const ban = text.match(/^\/(un)?ban\s+(\S+)/);
+        if (ban) {
+          if (!isAdmin) {
+            flash("not admin");
+            return;
+          }
+          inp.value = "";
+          cc.textContent = 100;
+          fetch("/api/ban", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + tok,
+            },
+            body: JSON.stringify({ name: ban[2], unban: !!ban[1] }),
+          })
+            .then((r) => r.json())
+            .then((d) => flash(d.error || JSON.stringify(d), 3e3))
+            .catch(() => flash("error"));
+          return;
+        }
+
+        if (!ws || ws.readyState !== 1) {
+          flash("not connected");
+          return;
+        }
+        if (!authed) {
+          flash("checking some things...");
+          return;
+        }
+        ws.send(JSON.stringify({ t: "m", text }));
+        inp.value = "";
+        cc.textContent = 100;
+      };
+    </script>
+  </body>
+</html>
