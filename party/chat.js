@@ -25,6 +25,13 @@ export default class ChatRoom {
     return this._redis;
   }
 
+  async onBeforeConnect(req) {
+    const origin = req.headers.get("origin") || "";
+    if (!origin.endsWith("makesweird.art")) {
+      return new Response("forbidden", { status: 403 });
+    }
+  }
+
   async onStart() {
     // load persisted history once when room wakes from hibernation, which is still 100 messages. the difference is this references the db
     try {

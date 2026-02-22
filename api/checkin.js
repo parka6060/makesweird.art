@@ -44,7 +44,7 @@ export async function POST(req) {
       checkins: (+user.checkins || 0) + 1,
       streak,
       lastCheckin: today,
-      tz: req.headers.get("x-vercel-ip-timezone") || user.tz || "UTC",
+      tz,
     };
     if (thing && typeof thing === "string") {
       const cleanThing = thing

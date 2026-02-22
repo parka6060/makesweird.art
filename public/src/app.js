@@ -229,8 +229,10 @@ if (location.hash.startsWith("#x")) {
       dots.innerHTML = "";
       return;
     }
-    // backfill missing dates only if hist is shorter than streak (UTC transition fix)
     const on = new Set(hist);
+    // backfill missing dates only if hist is shorter than streak.
+    // this handles the edge case where history data is missing because
+    // check-ins were tracked differently in the past.
     if (streak > on.size && hist.length) {
       const end = localDate(hist[hist.length - 1]);
       for (let i = 1; on.size < streak; i++) {
@@ -239,24 +241,29 @@ if (location.hash.startsWith("#x")) {
         on.add(d.toLocaleDateString("en-CA"));
       }
     }
+    if (!on.size) {
+      dots.innerHTML = doneToday ? "" : "<span class=today></span>";
+      return;
+    }
     const sorted = [...on].sort();
+    const loopEnd = doneToday ? sorted[sorted.length - 1] : today;
     let m = 0,
       h = "";
     for (
       let d = localDate(sorted[0]);
-      d <= localDate(sorted[sorted.length - 1]);
+      d <= localDate(loopEnd);
       d.setDate(d.getDate() + 1)
     ) {
       const ds = d.toLocaleDateString("en-CA");
       if (on.has(ds)) {
         h += "<span class=on></span>";
         m = 0;
-      } else {
+      } else if (ds === today && !doneToday) h += "<span class=today></span>";
+      else {
         m++;
         h += "<span" + (m >= 2 ? " class=x" : "") + "></span>";
       }
     }
-    if (!doneToday) h += "<span></span>";
     dots.innerHTML = h;
   }
   renderDots();
@@ -278,12 +285,10 @@ if (location.hash.startsWith("#x")) {
       if (gap >= 3) {
         streak = 0;
         tag.textContent = "";
-      }
-      if (gap >= 3)
         sub.textContent = "it's okay. start again whenever you're ready.";
-      else if (gap === 2)
+      } else if (gap === 2) {
         sub.textContent = "missed a day \u2014 you still got this.";
-      else {
+      } else {
         sub.textContent = "use your hands. keep it simple.";
       }
       c.checked = c.disabled = false;
@@ -295,7 +300,8 @@ if (location.hash.startsWith("#x")) {
   // initial render from localStorage (fast, assume not checked in yet)
   applyState(today, last === today);
   // then reconcile with server (authoritative)
-  fetch("/api/sync", { headers: { Authorization: "Bearer " + tok } })
+  const since = hist.length ? "?since=" + hist[hist.length - 1] : "";
+  fetch("/api/sync" + since, { headers: { Authorization: "Bearer " + tok } })
     .then((r) => r.json())
     .then((d) => {
       const serverToday = d.today || today;

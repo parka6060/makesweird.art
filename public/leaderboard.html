@@ -41,6 +41,8 @@
           body: JSON.stringify(body),
         });
       const myName = L.getItem("username") || "";
+      const esc = (s) =>
+        s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
       const kl = $("key-label"),
         km = $("key-msg");
@@ -123,7 +125,7 @@
         nm = $("name-msg");
       function showName(n) {
         grt.innerHTML = n
-          ? 'you\'re <span id="uname">' + n + "</span>"
+          ? 'you\'re <span id="uname">' + esc(n) + "</span>"
           : 'pick a <span id="uname">name</span> for the board.';
         const u = $("uname");
         u.style.cssText =
@@ -185,7 +187,6 @@
       }
       showName(myName);
 
-      const trunc = (t) => (t.length > 20 ? t.slice(0, 20) + "\u2026" : t);
       function renderBoard(data) {
         $("loading").style.display = "none";
         const bd = $("board");
@@ -201,9 +202,9 @@
             '"><span class="rank sub">#' +
             (i + 1) +
             "</span>" +
-            u.name +
+            esc(u.name) +
             " has been making " +
-            u.thing +
+            esc(u.thing) +
             " for " +
             u.streak +
             " " +
@@ -217,9 +218,9 @@
             '<div class="entry you-row"><span class="rank sub">#' +
               data.you.rank +
               "</span>" +
-              data.you.name +
+              esc(data.you.name) +
               " has been making " +
-              data.you.thing +
+              esc(data.you.thing) +
               " for " +
               data.you.streak +
               " " +

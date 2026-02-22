@@ -74,7 +74,7 @@
         let lastDay = "",
           html =
             data.length >= 100
-              ? '<p class="sub" style="text-align:center">older messages are not kept.</p>'
+              ? '<p class="sub" style="text-align:center">only the latest 100 messages are kept.</p>'
               : "";
         for (const m of data) {
           const day = new Date(m.ts).toLocaleDateString("en-CA");
