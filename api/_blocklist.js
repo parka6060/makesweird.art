@@ -1,7 +1,16 @@
 // Username matches are exact (lowercase). Thing matches are case-insensitive substrings.
 
 export const BANNED_USERNAMES = [
-  // evil
+  "admin",
+  "mod",
+  "moderator",
+  "root",
+  "system",
+  "bot",
+  "staff",
+  "support",
+  "makesweirdart",
+  "mwa",
 ];
 export const BANNED_THINGS = [
   // just incase
