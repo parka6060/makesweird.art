@@ -3,13 +3,11 @@ import {
   json,
   err,
   limit,
-  userTz,
   userToday,
   TTL_ANON,
   TTL_NAMED,
+  TOK_RE,
 } from "./_redis.js";
-
-const TOK_RE = /^[a-z]+-[a-z]+-\d{4}-[a-f0-9]{16}$/;
 
 // syncs user data based on token
 export async function GET(req) {
@@ -28,10 +26,9 @@ export async function GET(req) {
       .smembers(`hist:${tok}`)
       .exec();
 
-    if (!user?.registeredAt) return err("unauthorized", 401);
-    const tz = userTz(req, user);
+    if (!user?.registeredAt || user.banned) return err("unauthorized", 401);
     const today = userToday(req, user);
-    const locked = await redis.get(`ci:${tok}:${tz}:${today}`);
+    const since = new URL(req.url).searchParams.get("since");
     const ttl = user.name ? TTL_NAMED : TTL_ANON;
     redis
       .pipeline()
@@ -44,9 +41,9 @@ export async function GET(req) {
       streak: +user.streak || 0,
       lastCheckin: user.lastCheckin || "",
       thing: user.thing || "",
-      hist: (hist || []).sort(),
+      hist: since ? (hist || []).filter(d => d > since).sort() : (hist || []).sort(),
       today,
-      checkedIn: !!locked,
+      checkedIn: user.lastCheckin === today,
     });
   } catch {
     return err("server error", 500);

@@ -1,6 +1,4 @@
-import { redis, json, err, limit, TTL_ANON } from "./_redis.js";
-
-const TOK_RE = /^[a-z]+-[a-z]+-\d{4}-[a-f0-9]{16}$/;
+import { redis, json, err, limit, TTL_ANON, TOK_RE } from "./_redis.js";
 
 // rejisters a user with a token
 export async function POST(req) {

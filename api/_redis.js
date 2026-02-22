@@ -12,7 +12,7 @@ const ratelimit = new Ratelimit({
   prefix: "rl",
 });
 
-const TOK_RE = /^[a-z]+-[a-z]+-\d{4}-[a-f0-9]{16}$/;
+export const TOK_RE = /^[a-z]+-[a-z]+-\d{4}-[a-f0-9]{16}$/;
 
 export const TTL_ANON = 30 * 86400; // 30 days
 export const TTL_NAMED = 365 * 86400; // 1 year
