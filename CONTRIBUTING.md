@@ -35,4 +35,52 @@ thank you for wanting to contribute to MWA. this document explains our philosoph
 
 ---
 
-Thank you!
+Thank you! Here's how to get things running locally.
+
+---
+
+# running mwa locally
+
+if you want to run the site while developing, there are two ways:
+
+1. client preview (no server/API)
+   - Useful to iterate on HTML/CSS/JS UI that doesn't require the server APIs (checkin, chat, leaderboard).
+   - From the repo root:
+
+   ```bash
+   npm install -g serve   # if you don't already have a static server
+   serve public -s -l 3000
+   # then open http://localhost:3000
+   ```
+
+2. the full thing with a backend?
+   - Prerequisites:
+     - Node.js 18+ and `npm` or `pnpm`/`yarn`.
+     - A Redis instance accessible via Upstash (recommended) or another Redis-compatible REST endpoint.
+     - (Optional) Vercel CLI for running serverless functions locally: `npm i -g vercel`.
+
+   - Required environment variables
+
+     Create a `.env.local` file in the project root (this file is ignored by git) and set:
+
+     ```env
+     mwa_KV_REST_API_URL=<your upstash redis rest url>
+     mwa_KV_REST_API_TOKEN=<your upstash rest token>
+     ```
+
+     Notes:
+     - The API code expects a REST-style Upstash Redis URL and token. See Upstash docs for creating a Redis database and copying the REST credentials.
+     - Chat uses PartyKit (a hosted websocket provider). The client currently points at a production PartyKit host; you can run the site without a PartyKit setup but chat will be read-only/offline unless you configure a PartyKit instance.
+
+   - Run locally with Vercel (serverless emulation)
+
+   ```bash
+   npm install
+   vercel login           # once, if you haven't already
+   vercel dev             # runs the static site + api functions locally
+   # open http://localhost:3000
+   ```
+
+   - alternatively run and iterate on serverless functions with `node`+lightweight server frameworks, but `vercel dev` is the simplest match to production behavior.
+
+That's all you need!
