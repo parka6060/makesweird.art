@@ -32,14 +32,13 @@ if (location.hash.startsWith("#x")) {
     p.slice(1, hasName ? -1 : undefined).join(":") || "weird art",
   );
   const payload = who ? n + ":" + thing + ":" + who : n + ":" + thing;
-  const dw = n === "1" ? "day" : "days";
   const main = $("main");
   if (sig !== H(payload)) {
     main.innerHTML = "<p>nice try.</p>";
   } else {
     const p = document.createElement("p");
     p.append(who || "someone", " made ", thing, document.createElement("br"));
-    p.append("for ", n, " ", dw, " straight.");
+    p.append("for ", n, " ", n === "1" ? "day" : "days", " straight.");
     main.replaceChildren(p);
   }
 } else {
@@ -68,13 +67,9 @@ if (location.hash.startsWith("#x")) {
   save(L.getItem("t") ?? "weird art");
   t.onclick = () => {
     if (t.isContentEditable) return;
-    t.setAttribute("contenteditable", "");
+    t.contentEditable = true;
     t.focus();
-    const r = document.createRange();
-    r.selectNodeContents(t);
-    const s = getSelection();
-    s.removeAllRanges();
-    s.addRange(r);
+    getSelection().selectAllChildren(t);
   };
   t.onblur = () => {
     t.removeAttribute("contenteditable");
@@ -92,7 +87,7 @@ if (location.hash.startsWith("#x")) {
   let doneToday = last === today;
   function renderDots() {
     if (!hist.length && !streak && !last) {
-      dots.innerHTML = "";
+      dots.textContent = "";
       return;
     }
     const on = new Set(hist);
@@ -108,7 +103,7 @@ if (location.hash.startsWith("#x")) {
       }
     }
     if (!on.size) {
-      dots.innerHTML = doneToday ? "" : "<span class=today></span>";
+      dots.textContent = doneToday ? "" : "○";
       return;
     }
     const sorted = [...on].sort();
@@ -121,20 +116,13 @@ if (location.hash.startsWith("#x")) {
       d.setDate(d.getDate() + 1)
     ) {
       const ds = d.toLocaleDateString("en-CA");
-      if (on.has(ds)) {
-        h += "<span class=on></span>";
-        m = 0;
-      } else if (ds === today && !doneToday) h += "<span class=today></span>";
-      else {
-        m++;
-        h += "<span" + (m >= 2 ? " class=x" : "") + "></span>";
-      }
+      if (on.has(ds)) { h += "●"; m = 0; }
+      else if (ds === today && !doneToday) h += "○";
+      else { m++; h += m >= 2 ? "×" : "·"; }
     }
-    dots.innerHTML = h;
+    dots.textContent = h;
   }
   renderDots();
-  tag.textContent = streak ? `(x${streak})` : "";
-  tag.title = streak ? "click to copy share link" : "";
   function applyState(serverToday, checkedIn) {
     doneToday = checkedIn;
     tag.textContent = streak ? `(x${streak})` : "";
@@ -192,13 +180,7 @@ if (location.hash.startsWith("#x")) {
     L.setItem("d", today);
     L.setItem("n", streak);
     L.setItem("h", JSON.stringify(hist));
-    c.disabled = true;
-    l.style.opacity = 0.4;
-    mk.textContent = "made";
-    doneToday = true;
-    sub.textContent = "nice. see you tomorrow.";
-    tag.textContent = `(x${streak})`;
-    renderDots();
+    applyState(today, true);
     api("/api/checkin", { thing: san(t.textContent) })
       .then((r) => r.json())
       .then((d) => {
