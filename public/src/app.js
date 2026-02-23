@@ -5,138 +5,13 @@ const H = (s) => {
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
   return (h % 0xffff).toString(36);
 };
-const esc = (s) =>
-  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-const ADJ = [
-  "bold",
-  "brave",
-  "calm",
-  "cool",
-  "cozy",
-  "cute",
-  "dark",
-  "deep",
-  "fair",
-  "fast",
-  "free",
-  "glad",
-  "gold",
-  "hazy",
-  "keen",
-  "kind",
-  "loud",
-  "lush",
-  "mild",
-  "neat",
-  "odd",
-  "pale",
-  "raw",
-  "shy",
-  "soft",
-  "warm",
-  "wild",
-  "swift",
-  "quiet",
-  "tiny",
-  "vast",
-  "wise",
-  "zany",
-  "silly",
-  "dumb",
-  "green",
-  "orange",
-  "happy",
-  "friendly",
-  "liminal",
-  "dorky",
-  "teal",
-];
-const NOUN = [
-  "bear",
-  "bird",
-  "bone",
-  "cave",
-  "clay",
-  "crow",
-  "dawn",
-  "deer",
-  "dusk",
-  "fawn",
-  "fire",
-  "fish",
-  "frog",
-  "glow",
-  "hare",
-  "hawk",
-  "jade",
-  "lake",
-  "leaf",
-  "moth",
-  "mist",
-  "moss",
-  "newt",
-  "pine",
-  "reed",
-  "seed",
-  "snow",
-  "star",
-  "wren",
-  "yarn",
-  "wolf",
-  "owl",
-  "box",
-  "mouse",
-  "teddy",
-  "soy",
-  "beat",
-  "mlg",
-  "penguin",
-  "egg",
-  "oli",
-  "boo",
-  "sky",
-  "rain",
-  "stream",
-  "friend",
-  "weirdo",
-  "drawing",
-];
-
-const hex = () =>
-  Array.from(crypto.getRandomValues(new Uint8Array(8)))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
 let tok = L.getItem("tok");
-if (!tok) {
-  const pick = (a) => a[(Math.random() * a.length) | 0];
-  const gen = () =>
-    pick(ADJ) +
-    "-" +
-    pick(NOUN) +
-    "-" +
-    (1000 + ((Math.random() * 9000) | 0)) +
-    "-" +
-    hex();
-  tok = gen();
-  L.setItem("tok", tok);
-  (async () => {
-    for (let i = 0; i < 5; i++) {
-      const r = await fetch("/api/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: tok }),
-      });
-      const d = await r.json();
-      if (d.ok) return;
-      if (d.error === "taken") {
-        tok = gen();
-        L.setItem("tok", tok);
-        continue;
-      }
-      return;
-    }
-  })();
-}
+const _registered = tok
+  ? Promise.resolve()
+  : fetch("/api/register", { method: "POST" })
+      .then((r) => r.json())
+      .then((d) => { if (d.id) { tok = d.id; L.setItem("tok", tok); } })
+      .catch(() => {});
 const api = (path, body) =>
   fetch(path, {
     method: "POST",
@@ -158,19 +33,14 @@ if (location.hash.startsWith("#x")) {
   );
   const payload = who ? n + ":" + thing + ":" + who : n + ":" + thing;
   const dw = n === "1" ? "day" : "days";
+  const main = $("main");
   if (sig !== H(payload)) {
-    $("main").innerHTML = "<p>nice try.</p>";
+    main.innerHTML = "<p>nice try.</p>";
   } else {
-    $("main").innerHTML =
-      "<p>" +
-      esc(who || "someone") +
-      " made " +
-      esc(thing) +
-      "<br>for " +
-      esc(n) +
-      " " +
-      dw +
-      " straight.</p>";
+    const p = document.createElement("p");
+    p.append(who || "someone", " made ", thing, document.createElement("br"));
+    p.append("for ", n, " ", dw, " straight.");
+    main.replaceChildren(p);
   }
 } else {
   const t = $("t"),
@@ -188,7 +58,6 @@ if (location.hash.startsWith("#x")) {
   const san = (s) =>
     (s || "")
       .replace(/[^a-zA-Z0-9 .,!?'\-]/g, "")
-      .replace(/[\x00-\x1f]/g, "")
       .trim()
       .slice(0, 40) || "weird art";
   const save = (v) => {
@@ -219,10 +88,7 @@ if (location.hash.startsWith("#x")) {
       t.blur();
     }
   };
-  const localDate = (s) => {
-    const [y, m, d] = s.split("-");
-    return new Date(y, m - 1, d);
-  };
+  const localDate = (s) => { const [y,m,d] = s.split("-"); return new Date(y,m-1,d); };
   let doneToday = last === today;
   function renderDots() {
     if (!hist.length && !streak) {
@@ -278,7 +144,6 @@ if (location.hash.startsWith("#x")) {
       l.style.opacity = 0.4;
       mk.textContent = "made";
     } else {
-      const last = L.getItem("d") || "";
       const gap = last
         ? Math.round((localDate(serverToday) - localDate(last)) / 864e5)
         : 0;
@@ -301,7 +166,7 @@ if (location.hash.startsWith("#x")) {
   applyState(today, last === today);
   // then reconcile with server (authoritative)
   const since = hist.length ? "?since=" + hist[hist.length - 1] : "";
-  fetch("/api/sync" + since, { headers: { Authorization: "Bearer " + tok } })
+  _registered.then(() => fetch("/api/sync" + since, { headers: { Authorization: "Bearer " + tok } }))
     .then((r) => r.json())
     .then((d) => {
       const serverToday = d.today || today;
@@ -318,7 +183,6 @@ if (location.hash.startsWith("#x")) {
     })
     .catch(() => {});
   c.onchange = () => {
-    if (!c.checked) return;
     const last = L.getItem("d") || "";
     const gap = last
       ? Math.round((localDate(today) - localDate(last)) / 864e5)
