@@ -91,7 +91,7 @@ if (location.hash.startsWith("#x")) {
   const localDate = (s) => { const [y,m,d] = s.split("-"); return new Date(y,m-1,d); };
   let doneToday = last === today;
   function renderDots() {
-    if (!hist.length && !streak) {
+    if (!hist.length && !streak && !last) {
       dots.innerHTML = "";
       return;
     }
