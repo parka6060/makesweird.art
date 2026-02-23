@@ -2,12 +2,12 @@
 
 import { Redis } from "@upstash/redis/cloudflare";
 
-const MAX_HISTORY = 100;
+const MAX_HISTORY = 256;
 const TOK_RE = /^[a-z]+-[a-z]+-\d{4}-[a-f0-9]{16}$/;
 
 export default class ChatRoom {
   users = new Map(); // conn.id → { tok, name, ip }
-  history = []; // in-memory message buffer (last 100)
+  history = []; // in-memory message buffer (last 256)
   _redis = null;
 
   constructor(party) {
@@ -33,7 +33,7 @@ export default class ChatRoom {
   }
 
   async onStart() {
-    // load persisted history once when room wakes from hibernation, which is still 100 messages. the difference is this references the db
+    // load persisted history once when room wakes from hibernation, which is still 256 messages. the difference is this references the db
     try {
       const raw = await this.redis.lrange("chat", 0, -1);
       this.history = (raw || []).map((m) => {
@@ -112,11 +112,11 @@ export default class ChatRoom {
         return;
       }
 
+      //render escaping happens client‑side
       const clean = (data.text || "")
-        .replace(/[<>&"']/g, "")
         .replace(/[\x00-\x1f]/g, "")
         .trim()
-        .slice(0, 100);
+        .slice(0, 256);
       if (!clean) return;
 
       // !share command: shares streak with the room

@@ -9,7 +9,7 @@ Miss one day? Your streak is safe. Miss two in a row? It resets.
 # Philosophy
 
 1. **Minimal footprint:** The entire site is tiny (bandwidth) by design.
-2. **Ephemeral:** The chat stores 100 messages at a time.
+2. **Ephemeral:** The chat stores 256 messages at a time.
 3. **Privacy-first**: No email, no tracking, no analytics.
 
 ---
