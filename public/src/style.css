@@ -42,28 +42,11 @@ a,
   text-decoration: underline;
 }
 #dots {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 3px;
   max-width: min(400px, calc(100vw - 24px));
   margin: 1.5rem auto 0;
-}
-#dots span {
-  width: 10px;
-  height: 10px;
-  border-radius: 2px;
-  background: #271a0820;
-}
-#dots .on {
-  background: #271a08;
-}
-#dots .x {
-  background: #b33;
-}
-#dots .today {
-  background: transparent;
-  box-shadow: inset 0 0 0 1.5px #271a0855;
+  word-break: break-all;
+  letter-spacing: 3px;
+  line-height: 1.8;
 }
 .sub,
 .empty,
@@ -74,24 +57,32 @@ a,
 #hint,
 #inp:disabled,
 #hlinks a,
+#rules-btn,
 #nav a {
   opacity: 0.4;
 }
 #hlinks a,
+#rules-btn,
 #nav a {
   color: #271a08;
   text-decoration: none;
 }
+#rules-btn {
+  background: 0;
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+  padding: 0;
+}
 #hlinks a:hover,
+#rules-btn:hover,
 #nav a:hover {
   opacity: 1;
   text-decoration: underline;
 }
 #nav {
   position: fixed;
-  bottom: 12px;
-  left: 0;
-  right: 0;
+  inset: auto 0 12px;
   display: flex;
   justify-content: center;
   gap: 1.4rem;
@@ -103,7 +94,6 @@ a,
   margin: 0.25rem 0;
 }
 .pg-about,
-.pg-log,
 .pg-board {
   width: 100%;
   max-width: 450px;
@@ -122,23 +112,13 @@ a,
 .pg-board p {
   margin: 0 0 1rem;
 }
-.pg-log p {
-  margin: 0 0 0.3rem;
-}
 .mn,
 .v,
 .you-row {
   font-weight: bold;
 }
-.li {
-  padding-left: 1.2em;
-  text-indent: -1.2em;
-}
 .share {
   font-style: italic;
-}
-.gap {
-  letter-spacing: 0.15em;
 }
 .key-area {
   margin-top: 2.5rem;
@@ -167,17 +147,12 @@ a,
   gap: 1rem;
 }
 #rules {
-  position: absolute;
-  right: 0;
-  top: 1.6rem;
   background: #ece5d2;
   border: 1px dashed #271a0840;
   padding: 0.5rem 0.9rem;
   font-size: 0.85rem;
   line-height: 2;
   white-space: nowrap;
-  display: none;
-  z-index: 10;
 }
 #msgs {
   height: 60vh;
@@ -197,9 +172,6 @@ a,
   white-space: nowrap;
   flex-shrink: 0;
   line-height: 1.8;
-}
-.mn::after {
-  content: ":";
 }
 .day {
   display: flex;
@@ -234,13 +206,6 @@ a,
   margin: 0.2rem 0 0;
   display: flex;
   justify-content: space-between;
-}
-#msgs::-webkit-scrollbar {
-  width: 3px;
-}
-#msgs::-webkit-scrollbar-thumb {
-  background: #271a0840;
-  border-radius: 2px;
 }
 @media (max-width: 480px) {
   body {
