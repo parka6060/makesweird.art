@@ -136,8 +136,6 @@ if (location.hash.startsWith("#x")) {
         ? Math.round((localDate(serverToday) - localDate(last)) / 864e5)
         : 0;
       if (gap >= 3) {
-        streak = 0;
-        tag.textContent = "";
         sub.textContent = "it's okay. start again whenever you're ready.";
       } else if (gap === 2) {
         sub.textContent = "missed a day \u2014 you still got this.";

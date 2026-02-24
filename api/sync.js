@@ -30,20 +30,39 @@ export async function GET(req) {
     const today = userToday(req, user);
     const since = new URL(req.url).searchParams.get("since");
     const ttl = user.name ? TTL_NAMED : TTL_ANON;
-    redis
-      .pipeline()
-      .expire(`user:${tok}`, ttl)
-      .expire(`hist:${tok}`, ttl)
-      .exec()
-      .catch(() => {});
+
+    let streak = +user.streak || 0;
+    const last = user.lastCheckin;
+    const gap = last
+      ? Math.round((new Date(today) - new Date(last)) / 864e5)
+      : 0;
+
+    // server-side streak reset: if user has been gone too long, zero it out
+    if (streak > 0 && last && gap >= 3) {
+      streak = 0;
+      await redis
+        .pipeline()
+        .hset(`user:${tok}`, { streak: 0 })
+        .zadd("lb:streak", { score: 0, member: tok })
+        .expire(`user:${tok}`, ttl)
+        .expire(`hist:${tok}`, ttl)
+        .exec();
+    } else {
+      redis
+        .pipeline()
+        .expire(`user:${tok}`, ttl)
+        .expire(`hist:${tok}`, ttl)
+        .exec()
+        .catch(() => {});
+    }
 
     return json({
-      streak: +user.streak || 0,
-      lastCheckin: user.lastCheckin || "",
+      streak,
+      lastCheckin: last || "",
       thing: user.thing || "",
       hist: since ? (hist || []).filter(d => d > since).sort() : (hist || []).sort(),
       today,
-      checkedIn: user.lastCheckin === today,
+      checkedIn: last === today,
     });
   } catch {
     return err("server error", 500);
