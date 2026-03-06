@@ -25,7 +25,7 @@ export default class ChatRoom {
     return this._redis;
   }
 
-  async onBeforeConnect(req) {
+  static async onBeforeConnect(req) {
     const origin = req.headers.get("origin") || "";
     if (!origin.endsWith("makesweird.art")) {
       return new Response("forbidden", { status: 403 });
