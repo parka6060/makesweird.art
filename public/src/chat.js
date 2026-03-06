@@ -157,6 +157,9 @@ inp.onkeydown = (e) => {
     if (!isAdmin) return;
     inp.value = "";
     cc.textContent = 256;
+    fetch("/api/ban", {
+      method: "POST",
+      headers: {
         "Content-Type": "application/json",
         Authorization: "Bearer " + tok,
       },
