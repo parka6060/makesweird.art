@@ -24,5 +24,7 @@ export async function GET(req) {
     hist: (hist || []).sort(),
     bio: user.bio || "",
     css: user.css || "",
+    verb: user.verb || "",
+    links: user.links || "",
   });
 }

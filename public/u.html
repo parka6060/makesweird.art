@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
-    <main id="main">
+    <main id="main" style="display:flex;flex-direction:column">
       <p class="sub">loading...</p>
     </main>
     <nav id="nav">
@@ -32,12 +32,21 @@ const api = (path, body) => fetch(path, {
 
 const esc = s => String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
+
 function autolink(text) {
-  return esc(text).replace(/(https?:\/\/[^\s<]+)/g, url =>
-    /\.(jpg|jpeg|png|gif|webp|svg)(\?[^\s]*)?$/i.test(url)
+  return esc(text).replace(/(https?:\/\/[^\s<"]+)/g, url =>
+    /\.(jpg|jpeg|png|gif|webp|svg)(\?[^\s"]*)?$/i.test(url)
       ? '<img src="' + url + '" style="max-width:100%;display:block;margin:.5rem auto" alt="">'
       : '<a href="' + url + '" target="_blank" rel="noopener noreferrer">' + url + '</a>'
   );
+}
+
+function parseLinks(text) {
+  return (text || "").split("\n").map(l => l.trim()).filter(Boolean).map(l => {
+    const m = l.match(/^(.*?)\s*(https?:\/\/[^\s"]+)$/);
+    if (!m) return null;
+    return { label: m[1].trim() || m[2], url: m[2] };
+  }).filter(Boolean);
 }
 
 function localDate(s) { const [y, m, d] = s.split("-"); return new Date(y, m - 1, d); }
@@ -59,7 +68,7 @@ function since(iso) {
   return new Date(iso).toLocaleDateString("en-US", { month: "long", year: "numeric" }).toLowerCase();
 }
 
-const TA = "width:100%;box-sizing:border-box;background:transparent;border:0;border-bottom:1px dashed #271a0840;font:inherit;font-size:.85rem;color:inherit;outline:none;resize:none;padding:2px 0;display:block";
+const TA = "width:100%;box-sizing:border-box;background:transparent;border:0;border-bottom:1px dashed #271a0840;font:inherit;font-size:.85rem;color:inherit;outline:none;resize:vertical;padding:2px 0;display:block";
 
 fetch("/api/user?u=" + encodeURIComponent(un))
   .then(r => r.ok ? r.json() : Promise.reject(r.status))
@@ -70,12 +79,17 @@ fetch("/api/user?u=" + encodeURIComponent(un))
       s.textContent = u.css;
       document.head.appendChild(s);
     }
+    if (isOwner) {
+      const s = document.createElement("style");
+      s.textContent = ".key-area{display:block!important;visibility:visible!important;opacity:1!important}";
+      document.head.appendChild(s);
+    }
 
     const dotsStr = renderDots(u.hist || []);
     const sinceStr = u.since ? "since " + since(u.since) : "";
 
     let html =
-      "<p><strong id='uname'>" + esc(u.name) + "</strong> makes <strong>" + esc(u.thing) + "</strong>.</p>";
+      "<p id='tagline'><strong id='uname'>" + esc(u.name) + "</strong> <span id='verb'>" + esc(u.verb || "makes") + "</span> <strong id='thing'>" + esc(u.thing) + "</strong>.</p>";
 
     if (u.bio)
       html += "<p id='bio' style='white-space:pre-wrap'>" + autolink(u.bio) + "</p>";
@@ -84,12 +98,21 @@ fetch("/api/user?u=" + encodeURIComponent(un))
     if (isOwner)
       html += "<span id='bio-counter' class='sub' style='font-size:.7rem' hidden></span>";
 
+    const linkItems = parseLinks(u.links);
+    if (linkItems.length || isOwner) {
+      html += "<ul id='links' style='list-style:none;padding:0;margin:.5rem 0'>" +
+        linkItems.map(l =>
+          "<li><a href='" + esc(l.url).replace(/'/g, "%27") + "' target='_blank' rel='noopener noreferrer'>" + esc(l.label) + "</a></li>"
+        ).join("") +
+        "</ul>";
+    }
+
     if (dotsStr)
       html += "<div id='dots'>" + dotsStr + "</div>";
 
     html +=
-      "<p class='sub'>" + u.streak + " days in a row · " + u.checkins + " total" +
-      (sinceStr ? " · " + sinceStr : "") + "</p>" +
+      "<p class='sub'>streak: " + u.streak + " · " + u.checkins + " logged" +
+      (sinceStr ? "</p><p class='sub'>" + sinceStr : "") + "</p>" +
       "<p><span id='plink' style='cursor:pointer;border-bottom:1px dashed' title='click to copy'>" +
       esc(u.name) + ".makesweird.art</span></p>";
 
@@ -97,14 +120,19 @@ fetch("/api/user?u=" + encodeURIComponent(un))
       html +=
         "<div class='key-area'>" +
         "<p id='name-msg' style='font-size:.75rem;color:#b33;margin:0 0 .4rem'></p>" +
+        "<p style='margin:0 0 .3rem'><span id='links-toggle' class='sub' style='cursor:pointer;font-size:.8rem'>links ···</span></p>" +
+        "<div id='links-area' hidden>" +
+        "<textarea id='links-inp' rows='4' maxlength='800' placeholder='instagram https://instagram.com/username\nlinks work in the bio too, this exists for those who want to easily style their links with custom css.' style='" + TA + ";font-size:.75rem'>" + esc(u.links || "") + "</textarea>" +
+        "</div>" +
         "<p style='margin:0 0 .3rem'><span id='css-toggle' class='sub' style='cursor:pointer;font-size:.8rem'>custom css ···</span> <span id='css-count' class='sub' style='font-size:.75rem' hidden></span></p>" +
         "<div id='css-area' hidden>" +
-        "<textarea id='css-inp' rows='5' maxlength='2000' placeholder='body { background: hotpink; }' style='" + TA + ";font-size:.75rem'>" + esc(u.css) + "</textarea>" +
+        "<textarea id='css-inp' rows='5' maxlength='2048' placeholder='body { background: hotpink; }' style='" + TA + ";font-size:.75rem'>" + esc(u.css) + "</textarea>" +
         "<p id='profile-msg' style='font-size:.75rem;color:#b33;margin:.1rem 0 0'></p>" +
         "</div>" +
         "<p style='margin:.4rem 0 .2rem'><span id='kl' class='sub' style='cursor:pointer;font-size:.8rem'>your key ···</span></p>" +
         "<div id='key-body' hidden style='font-size:.8rem'>" +
-        "<span id='ktok' style='color:#3a6a9b;cursor:pointer'>" + tok + "</span>" +
+        "<p style='margin:0 0 .4rem;color:#b33;font-size:.75rem'>!!! Save this key somewhere safe. It's the only way to recover/access your account. There's no way to recover your account when the key is lost !!!</p>" +
+        "<span id='ktok' style='color:#3a6a9b;cursor:pointer'>" + esc(tok) + "</span>" +
         " <span id='km' style='font-size:.9em'></span>" +
         "</div>" +
         "</div>";
@@ -121,7 +149,10 @@ fetch("/api/user?u=" + encodeURIComponent(un))
 
     if (isOwner) {
       setupNameEdit(u.name);
+      setupVerbEdit(u.verb || "makes");
+      setupThingEdit(u.thing);
       setupBioEdit(u.bio);
+      setupLinks(u.links || "");
       setupCSS(u.css);
       setupKey();
     }
@@ -131,22 +162,74 @@ fetch("/api/user?u=" + encodeURIComponent(un))
       "<p>" + (s === 404 ? un + " hasn't made it here yet." : "something went wrong.") + "</p>";
   });
 
+function setupVerbEdit(initVerb) {
+  const el = $("verb");
+  let cur = initVerb;
+  el.title = "click to change";
+  el.style.cssText = "border-bottom:1px dashed;cursor:pointer;outline:none";
+  el.onclick = () => {
+    if (el.isContentEditable) return;
+    el.setAttribute("contenteditable", "");
+    const r = document.createRange();
+    r.selectNodeContents(el);
+    getSelection().removeAllRanges();
+    getSelection().addRange(r);
+    el.focus();
+  };
+  el.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); el.blur(); } };
+  el.onblur = () => {
+    el.removeAttribute("contenteditable");
+    const raw = el.textContent.replace(/[^a-zA-Z\s]/g, "").trim().slice(0, 24);
+    if (!raw) { el.textContent = cur; return; }
+    if (raw === cur) return;
+    cur = raw;
+    el.textContent = cur;
+    api("/api/profile", { verb: cur }).catch(() => {});
+  };
+}
+
+function setupThingEdit(initThing) {
+  const el = $("thing");
+  let cur = initThing;
+  el.title = "click to change";
+  el.style.cssText = "border-bottom:1px dashed;cursor:pointer;outline:none";
+  el.onclick = () => {
+    if (el.isContentEditable) return;
+    el.setAttribute("contenteditable", "");
+    const r = document.createRange();
+    r.selectNodeContents(el);
+    getSelection().removeAllRanges();
+    getSelection().addRange(r);
+    el.focus();
+  };
+  el.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); el.blur(); } };
+  el.onblur = () => {
+    el.removeAttribute("contenteditable");
+    const raw = el.textContent.replace(/[^a-zA-Z0-9 .,!?'\-]/g, "").trim().slice(0, 40);
+    if (!raw) { el.textContent = cur; return; }
+    if (raw === cur) return;
+    cur = raw;
+    el.textContent = cur;
+    api("/api/thing", { thing: cur }).catch(() => {});
+  };
+}
+
 function setupBioEdit(initBio) {
   const bio = $("bio"), counter = $("bio-counter");
   let cur = initBio || "";
   bio.title = "click to edit";
   bio.onclick = () => {
     if (bio.isContentEditable) return;
-    if (!cur) bio.textContent = "";
+    bio.textContent = cur;
     bio.className = "";
     bio.style.whiteSpace = "pre-wrap";
     bio.setAttribute("contenteditable", "");
-    counter.textContent = (512 - (bio.innerText.length || 0)) + " left";
+    counter.textContent = (777 - cur.length) + " left";
     counter.hidden = false;
     bio.focus();
   };
   bio.oninput = () => {
-    const left = 512 - bio.innerText.length;
+    const left = 777 - bio.innerText.length;
     counter.textContent = left + " left";
     if (left < 0) bio.innerText = bio.innerText.slice(0, 256);
   };
@@ -154,19 +237,39 @@ function setupBioEdit(initBio) {
   bio.onblur = () => {
     bio.removeAttribute("contenteditable");
     counter.hidden = true;
-    const text = bio.innerText.trim().slice(0, 512);
+    const text = bio.innerText.trim().slice(0, 777);
     if (!text) { bio.className = "sub"; bio.style.whiteSpace = ""; bio.textContent = "add a bio..."; cur = ""; return; }
+    bio.innerHTML = autolink(text);
     if (text === cur) return;
     cur = text;
-    bio.innerHTML = autolink(text);
     api("/api/profile", { bio: text }).catch(() => {});
+  };
+}
+
+function setupLinks(initLinks) {
+  const toggle = $("links-toggle"), area = $("links-area"), inp = $("links-inp");
+  toggle.onclick = () => {
+    area.hidden = !area.hidden;
+    toggle.textContent = area.hidden ? "links ···" : "links ▾";
+  };
+  let saveTimer;
+  inp.oninput = () => {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      api("/api/profile", { links: inp.value }).then(() => {
+        const ul = $("links");
+        if (ul) ul.innerHTML = parseLinks(inp.value).map(l =>
+          "<li><a href='" + esc(l.url).replace(/'/g, "%27") + "' target='_blank' rel='noopener noreferrer'>" + esc(l.label) + "</a></li>"
+        ).join("");
+      }).catch(() => {});
+    }, 800);
   };
 }
 
 function setupCSS(initCSS) {
   const toggle = $("css-toggle"), area = $("css-area");
   const cssInp = $("css-inp"), cssCount = $("css-count"), msg = $("profile-msg");
-  cssCount.textContent = (initCSS || "").length + "/2000";
+  cssCount.textContent = (initCSS || "").length + "/2048";
   toggle.onclick = () => {
     area.hidden = !area.hidden;
     toggle.textContent = area.hidden ? "custom css ···" : "custom css ▾";
@@ -174,7 +277,7 @@ function setupCSS(initCSS) {
   };
   let saveTimer;
   cssInp.oninput = () => {
-    cssCount.textContent = cssInp.value.length + "/2000";
+    cssCount.textContent = cssInp.value.length + "/2048";
     clearTimeout(saveTimer);
     saveTimer = setTimeout(() => {
       api("/api/profile", { css: cssInp.value })
@@ -195,14 +298,37 @@ function setupCSS(initCSS) {
 function setupKey() {
   const kl = $("kl"), body = $("key-body"), km = $("km");
 
-  $("ktok").onclick = () => {
+  const ktok = $("ktok");
+  ktok.textContent = "click to reveal";
+  ktok.style.color = "inherit";
+  let revealed = false;
+  ktok.onclick = () => {
+    if (!revealed) {
+      ktok.textContent = tok;
+      ktok.style.color = "#3a6a9b";
+      revealed = true;
+      return;
+    }
     navigator.clipboard.writeText(tok);
-    const el = $("ktok"), p = el.textContent;
-    el.textContent = "copied!";
-    setTimeout(() => el.textContent = p, 1200);
+    const p = ktok.textContent;
+    ktok.textContent = "copied!";
+    setTimeout(() => ktok.textContent = p, 1200);
   };
-  km.innerHTML = "<a href='#' id='ki'>import a different key</a>";
+  km.innerHTML = "<a href='#' id='ki'>import a different key</a> · <a href='#' id='kr'>regenerate</a>";
   $("ki").onclick = e => { e.preventDefault(); doImport(km); };
+  $("kr").onclick = e => {
+    e.preventDefault();
+    if (!confirm("this will invalidate your current key. make sure you save the new one. continue?")) return;
+    km.textContent = "regenerating...";
+    api("/api/rekey", {}).then(r => r.json()).then(d => {
+      if (d.error) { km.textContent = d.error; return; }
+      L.setItem("tok", d.id);
+      ktok.textContent = d.id;
+      ktok.style.color = "#3a6a9b";
+      revealed = true;
+      km.textContent = "done! copy your new key above.";
+    }).catch(() => km.textContent = "error");
+  };
 
   kl.onclick = () => {
     const open = !body.hidden;
