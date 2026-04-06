@@ -14,82 +14,6 @@ const myName = L.getItem("username") || "";
 const esc = (s) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-const kl = $("key-label"),
-  km = $("key-msg");
-let keyRevealed = false;
-kl.onclick = () => {
-  if (!keyRevealed) {
-    kl.innerHTML =
-      'your key: <span id="ktok" style="color:#3a6a9b;cursor:pointer">' +
-      tok +
-      "</span>";
-    kl.style.opacity = "1";
-    kl.style.cursor = "default";
-    km.innerHTML = '<br><a href="#" id="ki">import a different key</a>';
-    $("ktok").onclick = () => {
-      navigator.clipboard.writeText(tok);
-      const el = $("ktok"),
-        p = el.textContent;
-      el.textContent = "copied!";
-      setTimeout(() => {
-        el.textContent = p;
-      }, 1200);
-    };
-    $("ki").onclick = (e) => {
-      e.preventDefault();
-      doImport();
-    };
-    keyRevealed = true;
-    return;
-  }
-};
-function doImport() {
-  km.innerHTML = "";
-  kl.innerHTML =
-    'paste key: <span id="kinp" style="border-bottom:1px dashed;outline:none" contenteditable></span>';
-  kl.style.opacity = "1";
-  const inp = $("kinp");
-  inp.focus();
-  inp.onkeydown = (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      inp.blur();
-    }
-  };
-  inp.onblur = () => {
-    const raw = inp.textContent.trim();
-    if (!raw || raw.length < 20) {
-      km.textContent = "invalid key";
-      return;
-    }
-    km.textContent = "checking...";
-    fetch("/api/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: raw }),
-    })
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.error) {
-          km.textContent = d.error;
-          return;
-        }
-        tok = raw;
-        L.setItem("tok", raw);
-        if (d.name) L.setItem("username", d.name);
-        if (d.thing) L.setItem("t", d.thing);
-        if (d.lastCheckin) L.setItem("d", d.lastCheckin);
-        L.setItem("n", d.streak);
-        if (d.hist && d.hist.length)
-          L.setItem("h", JSON.stringify(d.hist));
-        km.textContent = "imported! reloading...";
-        setTimeout(() => location.reload(), 800);
-      })
-      .catch(() => {
-        km.textContent = "error";
-      });
-  };
-}
 
 const grt = $("greeting"),
   nm = $("name-msg");
@@ -165,6 +89,7 @@ function renderBoard(data) {
       '<p class="empty">no one here yet. go make something.</p>';
     return;
   }
+  const nameLink = n => /^anon\d+$/.test(n) ? esc(n) : '<a href="/u/' + esc(n) + '">' + esc(n) + '</a>';
   const lines = data.board.map((u, i) => {
     const r =
       '<div class="entry' +
@@ -172,7 +97,7 @@ function renderBoard(data) {
       '"><span class="rank sub">#' +
       (i + 1) +
       "</span>" +
-      esc(u.name) +
+      nameLink(u.name) +
       " has been making " +
       esc(u.thing) +
       " for " +
@@ -188,7 +113,7 @@ function renderBoard(data) {
       '<div class="entry you-row"><span class="rank sub">#' +
         data.you.rank +
         "</span>" +
-        esc(data.you.name) +
+        nameLink(data.you.name) +
         " has been making " +
         esc(data.you.thing) +
         " for " +
@@ -220,3 +145,5 @@ if (tok) {
       $("loading").textContent = "could not load.";
     });
 }
+
+{ const _u = L.getItem("username"); if (_u) { const a = $("pnav"); if (a) { a.href = "/u/" + _u; a.hidden = false; } } }

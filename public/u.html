@@ -1,0 +1,275 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>mwa > profile</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <main id="main">
+      <p class="sub">loading...</p>
+    </main>
+    <nav id="nav">
+      <a href="/">home</a><a href="/leaderboard">leaderboard</a
+      ><a href="/chat">chat</a><a id="pnav" href="" hidden>profile</a
+      ><a href="/about">about</a>
+    </nav>
+    <script>
+const L = localStorage, $ = id => document.getElementById(id);
+const un = location.pathname.split("/").filter(Boolean)[1] || "";
+document.title = "mwa > " + un;
+const myName = L.getItem("username") || "";
+if (myName) { const a = $("pnav"); a.href = "/u/" + myName; a.hidden = false; }
+const isOwner = myName === un;
+const tok = L.getItem("tok") || "";
+
+const api = (path, body) => fetch(path, {
+  method: "POST",
+  headers: { "Content-Type": "application/json", Authorization: "Bearer " + tok },
+  body: JSON.stringify(body),
+});
+
+const esc = s => String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+function autolink(text) {
+  return esc(text).replace(/(https?:\/\/[^\s<]+)/g, url =>
+    /\.(jpg|jpeg|png|gif|webp|svg)(\?[^\s]*)?$/i.test(url)
+      ? '<img src="' + url + '" style="max-width:100%;display:block;margin:.5rem auto" alt="">'
+      : '<a href="' + url + '" target="_blank" rel="noopener noreferrer">' + url + '</a>'
+  );
+}
+
+function localDate(s) { const [y, m, d] = s.split("-"); return new Date(y, m - 1, d); }
+
+function renderDots(hist) {
+  if (!hist.length) return "";
+  const on = new Set(hist);
+  const sorted = [...on].sort();
+  let h = "", m = 0;
+  for (let d = localDate(sorted[0]); d <= localDate(sorted[sorted.length - 1]); d.setDate(d.getDate() + 1)) {
+    const ds = d.toLocaleDateString("en-CA");
+    if (on.has(ds)) { h += "●"; m = 0; }
+    else { m++; h += m >= 2 ? "×" : "·"; }
+  }
+  return h;
+}
+
+function since(iso) {
+  return new Date(iso).toLocaleDateString("en-US", { month: "long", year: "numeric" }).toLowerCase();
+}
+
+const TA = "width:100%;box-sizing:border-box;background:transparent;border:0;border-bottom:1px dashed #271a0840;font:inherit;font-size:.85rem;color:inherit;outline:none;resize:none;padding:2px 0;display:block";
+
+fetch("/api/user?u=" + encodeURIComponent(un))
+  .then(r => r.ok ? r.json() : Promise.reject(r.status))
+  .then(u => {
+    // inject custom css
+    if (u.css) {
+      const s = document.createElement("style");
+      s.textContent = u.css;
+      document.head.appendChild(s);
+    }
+
+    const dotsStr = renderDots(u.hist || []);
+    const sinceStr = u.since ? "since " + since(u.since) : "";
+
+    let html =
+      "<p><strong id='uname'>" + esc(u.name) + "</strong> makes <strong>" + esc(u.thing) + "</strong>.</p>";
+
+    if (u.bio)
+      html += "<p id='bio' style='white-space:pre-wrap'>" + autolink(u.bio) + "</p>";
+    else if (isOwner)
+      html += "<p id='bio' class='sub' style='cursor:pointer'>add a bio...</p>";
+    if (isOwner)
+      html += "<span id='bio-counter' class='sub' style='font-size:.7rem' hidden></span>";
+
+    if (dotsStr)
+      html += "<div id='dots'>" + dotsStr + "</div>";
+
+    html +=
+      "<p class='sub'>" + u.streak + " days in a row · " + u.checkins + " total" +
+      (sinceStr ? " · " + sinceStr : "") + "</p>" +
+      "<p><span id='plink' style='cursor:pointer;border-bottom:1px dashed' title='click to copy'>" +
+      esc(u.name) + ".makesweird.art</span></p>";
+
+    if (isOwner) {
+      html +=
+        "<div class='key-area'>" +
+        "<p id='name-msg' style='font-size:.75rem;color:#b33;margin:0 0 .4rem'></p>" +
+        "<p style='margin:0 0 .3rem'><span id='css-toggle' class='sub' style='cursor:pointer;font-size:.8rem'>custom css ···</span> <span id='css-count' class='sub' style='font-size:.75rem' hidden></span></p>" +
+        "<div id='css-area' hidden>" +
+        "<textarea id='css-inp' rows='5' maxlength='2000' placeholder='body { background: hotpink; }' style='" + TA + ";font-size:.75rem'>" + esc(u.css) + "</textarea>" +
+        "<p id='profile-msg' style='font-size:.75rem;color:#b33;margin:.1rem 0 0'></p>" +
+        "</div>" +
+        "<p style='margin:.4rem 0 .2rem'><span id='kl' class='sub' style='cursor:pointer;font-size:.8rem'>your key ···</span></p>" +
+        "<div id='key-body' hidden style='font-size:.8rem'>" +
+        "<span id='ktok' style='color:#3a6a9b;cursor:pointer'>" + tok + "</span>" +
+        " <span id='km' style='font-size:.9em'></span>" +
+        "</div>" +
+        "</div>";
+    }
+
+    $("main").innerHTML = html;
+
+    $("plink").onclick = () => {
+      navigator.clipboard.writeText("https://" + u.name + ".makesweird.art");
+      const el = $("plink"), p = el.textContent;
+      el.textContent = "copied!";
+      setTimeout(() => el.textContent = p, 1200);
+    };
+
+    if (isOwner) {
+      setupNameEdit(u.name);
+      setupBioEdit(u.bio);
+      setupCSS(u.css);
+      setupKey();
+    }
+  })
+  .catch(s => {
+    $("main").innerHTML =
+      "<p>" + (s === 404 ? un + " hasn't made it here yet." : "something went wrong.") + "</p>";
+  });
+
+function setupBioEdit(initBio) {
+  const bio = $("bio"), counter = $("bio-counter");
+  let cur = initBio || "";
+  bio.title = "click to edit";
+  bio.onclick = () => {
+    if (bio.isContentEditable) return;
+    if (!cur) bio.textContent = "";
+    bio.className = "";
+    bio.style.whiteSpace = "pre-wrap";
+    bio.setAttribute("contenteditable", "");
+    counter.textContent = (512 - (bio.innerText.length || 0)) + " left";
+    counter.hidden = false;
+    bio.focus();
+  };
+  bio.oninput = () => {
+    const left = 512 - bio.innerText.length;
+    counter.textContent = left + " left";
+    if (left < 0) bio.innerText = bio.innerText.slice(0, 256);
+  };
+  bio.onkeydown = e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); bio.blur(); } };
+  bio.onblur = () => {
+    bio.removeAttribute("contenteditable");
+    counter.hidden = true;
+    const text = bio.innerText.trim().slice(0, 512);
+    if (!text) { bio.className = "sub"; bio.style.whiteSpace = ""; bio.textContent = "add a bio..."; cur = ""; return; }
+    if (text === cur) return;
+    cur = text;
+    bio.innerHTML = autolink(text);
+    api("/api/profile", { bio: text }).catch(() => {});
+  };
+}
+
+function setupCSS(initCSS) {
+  const toggle = $("css-toggle"), area = $("css-area");
+  const cssInp = $("css-inp"), cssCount = $("css-count"), msg = $("profile-msg");
+  cssCount.textContent = (initCSS || "").length + "/2000";
+  toggle.onclick = () => {
+    area.hidden = !area.hidden;
+    toggle.textContent = area.hidden ? "custom css ···" : "custom css ▾";
+    cssCount.hidden = area.hidden;
+  };
+  let saveTimer;
+  cssInp.oninput = () => {
+    cssCount.textContent = cssInp.value.length + "/2000";
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      api("/api/profile", { css: cssInp.value })
+        .then(r => r.json())
+        .then(d => {
+          if (d.error) { msg.textContent = d.error; return; }
+          msg.textContent = "saved.";
+          setTimeout(() => msg.textContent = "", 1200);
+          let s = document.querySelector("style[data-user]");
+          if (!s) { s = document.createElement("style"); s.dataset.user = "1"; document.head.appendChild(s); }
+          s.textContent = cssInp.value;
+        })
+        .catch(() => msg.textContent = "error");
+    }, 800);
+  };
+}
+
+function setupKey() {
+  const kl = $("kl"), body = $("key-body"), km = $("km");
+
+  $("ktok").onclick = () => {
+    navigator.clipboard.writeText(tok);
+    const el = $("ktok"), p = el.textContent;
+    el.textContent = "copied!";
+    setTimeout(() => el.textContent = p, 1200);
+  };
+  km.innerHTML = "<a href='#' id='ki'>import a different key</a>";
+  $("ki").onclick = e => { e.preventDefault(); doImport(km); };
+
+  kl.onclick = () => {
+    const open = !body.hidden;
+    body.hidden = open;
+    kl.textContent = open ? "your key ···" : "your key ▾";
+  };
+}
+
+function doImport(km) {
+  km.innerHTML = "paste key: <span id='kinp' style='border-bottom:1px dashed;outline:none' contenteditable></span>";
+  const inp = $("kinp");
+  inp.focus();
+  inp.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); inp.blur(); } };
+  inp.onblur = () => {
+    const raw = inp.textContent.trim();
+    if (!raw || raw.length < 20) { km.textContent = "invalid key"; return; }
+    km.textContent = "checking...";
+    fetch("/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: raw }),
+    }).then(r => r.json()).then(d => {
+      if (d.error) { km.textContent = d.error; return; }
+      L.setItem("tok", raw);
+      if (d.name) L.setItem("username", d.name);
+      if (d.thing) L.setItem("t", d.thing);
+      if (d.lastCheckin) L.setItem("d", d.lastCheckin);
+      L.setItem("n", d.streak);
+      if (d.hist && d.hist.length) L.setItem("h", JSON.stringify(d.hist));
+      km.textContent = "imported! reloading...";
+      setTimeout(() => location.reload(), 800);
+    }).catch(() => km.textContent = "error");
+  };
+}
+
+function setupNameEdit(cur) {
+  const nm = $("name-msg"), u = $("uname");
+  u.style.cssText = "border-bottom:1px dashed;cursor:pointer;outline:none";
+  u.title = "click to change";
+  u.onclick = () => {
+    if (u.isContentEditable) return;
+    u.setAttribute("contenteditable", "");
+    const r = document.createRange();
+    r.selectNodeContents(u);
+    getSelection().removeAllRanges();
+    getSelection().addRange(r);
+    u.focus();
+  };
+  u.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); u.blur(); } };
+  u.onblur = () => {
+    u.removeAttribute("contenteditable");
+    const raw = u.textContent.trim().toLowerCase().replace(/[^a-z0-9\-_]/g, "").slice(0, 20);
+    if (raw.length < 2) { nm.textContent = "2-20 chars, a-z 0-9 - _"; u.textContent = cur; return; }
+    if (raw === cur) { nm.textContent = ""; return; }
+    nm.textContent = "saving...";
+    api("/api/username", { name: raw }).then(r => r.json()).then(d => {
+      if (d.error) { nm.textContent = d.error; u.textContent = cur; return; }
+      cur = d.name;
+      L.setItem("username", d.name);
+      nm.textContent = "";
+      const pl = $("plink");
+      if (pl) pl.textContent = d.name + ".makesweird.art";
+      const pnav = $("pnav");
+      if (pnav) pnav.href = "/u/" + d.name;
+    }).catch(() => { nm.textContent = "error"; u.textContent = cur; });
+  };
+}
+    </script>
+  </body>
+</html>

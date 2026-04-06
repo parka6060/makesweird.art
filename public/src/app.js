@@ -195,6 +195,13 @@ if (location.hash.startsWith("#x")) {
     if (streak < 1) return;
     const name = L.getItem("username") || "",
       thing = encodeURIComponent(t.textContent);
+    if (name) {
+      navigator.clipboard.writeText("https://" + name + ".makesweird.art");
+      const prev = tag.textContent;
+      tag.textContent = "copied!";
+      setTimeout(() => (tag.textContent = prev), 1200);
+      return;
+    }
     const payload = streak + ":" + t.textContent + (name ? ":" + name : "");
     const sig = H(payload),
       nameEnc = name ? ":" + encodeURIComponent(name) : "";
@@ -206,3 +213,4 @@ if (location.hash.startsWith("#x")) {
     setTimeout(() => (tag.textContent = prev), 1200);
   };
 }
+{ const _u = L.getItem("username"); if (_u) { const a = $("pnav"); if (a) { a.href = "/u/" + _u; a.hidden = false; } } }

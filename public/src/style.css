@@ -43,8 +43,10 @@ a,
 }
 #dots {
   max-width: min(400px, calc(100vw - 24px));
+  width: 100%;
   margin: 1.5rem auto 0;
   word-break: break-all;
+  overflow-wrap: anywhere;
   letter-spacing: 3px;
   line-height: 1.8;
 }
@@ -101,12 +103,13 @@ a,
 }
 .pg-board .entry {
   position: relative;
-  padding-left: 2.5em;
+  padding-left: 3.5em;
   margin-bottom: 0.15em;
 }
 .pg-board .rank {
   position: absolute;
   left: 0;
+  min-width: 3em;
 }
 .pg-about p,
 .pg-board p {

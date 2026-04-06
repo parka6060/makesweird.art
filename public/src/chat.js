@@ -61,7 +61,7 @@ function render(data) {
         '"><span class="mt">' +
         fmt(m.ts) +
         '</span><span class="mc"><span class="mn">' +
-        esc(m.n) +
+        (/^anon\d+$/.test(m.n) ? esc(m.n) : '<a href="/u/' + esc(m.n) + '" style="color:inherit">' + esc(m.n) + '</a>') +
         ":</span> " +
         esc(m.t) +
         "</span></p>";
@@ -174,3 +174,5 @@ inp.onkeydown = (e) => {
   inp.value = "";
   cc.textContent = 256;
 };
+
+{ const _u = L.getItem("username"); if (_u) { const a = $("pnav"); if (a) { a.href = "/u/" + _u; a.hidden = false; } } }
