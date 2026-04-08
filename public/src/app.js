@@ -59,30 +59,26 @@ const api = (path, body) =>
       dots.innerHTML = "";
       return;
     }
-    const on = new Set(hist);
-    // backfill missing dates only if hist is shorter than streak.
-    if (streak > on.size && hist.length) {
-      const end = localDate(hist[hist.length - 1]);
+    // backfill missing dates only if hist is shorter than streak
+    const filled = [...hist];
+    if (streak > new Set(filled).size && filled.length) {
+      const on = new Set(filled);
+      const end = localDate(filled[filled.length - 1]);
       for (let i = 1; on.size < streak; i++) {
         const d = new Date(end);
         d.setDate(d.getDate() - i);
-        on.add(d.toLocaleDateString("en-CA"));
+        const ds = d.toLocaleDateString("en-CA");
+        if (!on.has(ds)) { on.add(ds); filled.push(ds); }
       }
     }
-    if (!on.size) {
+    if (!filled.length) {
       dots.innerHTML = doneToday ? "" : '<span class="d">○</span>';
       return;
     }
-    const sorted = [...on].sort();
-    const loopEnd = doneToday ? sorted[sorted.length - 1] : today;
-    let m = 0, spans = [];
-    for (let d = localDate(sorted[0]); d <= localDate(loopEnd); d.setDate(d.getDate() + 1)) {
-      const ds = d.toLocaleDateString("en-CA");
-      if (on.has(ds)) { spans.push('<span class="d">●</span>'); m = 0; }
-      else if (ds === today && !doneToday) spans.push('<span class="d">○</span>');
-      else { m++; spans.push('<span class="d">' + (m >= 2 ? "×" : "·") + '</span>'); }
-    }
-    dots.innerHTML = spans.join("");
+    // show grid up to last check-in, then add ○ for today if not checked in
+    let html = renderDotGrid(filled);
+    if (!doneToday) html += '<span class="d">○</span>';
+    dots.innerHTML = html;
   }
   renderDots();
   function applyState(serverToday, checkedIn) {

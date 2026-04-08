@@ -68,7 +68,7 @@
           }
           document.getElementById("name").textContent = u.name + " makes " + u.thing;
           document.getElementById("streak").textContent = "x" + u.streak + " streak";
-          document.getElementById("grid").innerHTML = renderDotGrid(u.hist || []);
+          document.getElementById("grid").innerHTML = renderDotGrid(u.hist || [], true);
           document.getElementById("meta").innerHTML =
             u.checkins + " logged · " +
             "<a href='https://makesweird.art/u/" + encodeURIComponent(u.name) + "' target='_blank'>makesweird.art</a>";
