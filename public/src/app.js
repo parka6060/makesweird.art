@@ -1,16 +1,10 @@
-const $ = (id) => document.getElementById(id),
-  L = localStorage;
-const H = (s) => {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
-  return (h % 0xffff).toString(36);
-};
+// $ and L from util.js
 let tok = L.getItem("tok");
 const _registered = tok
   ? Promise.resolve()
   : fetch("/api/register", { method: "POST" })
       .then((r) => r.json())
-      .then((d) => { if (d.id) { tok = d.id; L.setItem("tok", tok); } })
+      .then((d) => { if (d.id) { tok = d.id; L.setItem("tok", tok); initNav(); } })
       .catch(() => {});
 const api = (path, body) =>
   fetch(path, {
@@ -22,26 +16,7 @@ const api = (path, body) =>
     body: JSON.stringify(body),
   });
 
-if (location.hash.startsWith("#x")) {
-  const [b, sig] = location.hash.slice(1).split("."),
-    p = b.split(":");
-  const n = p[0].slice(1),
-    hasName = p.length > 2;
-  const who = hasName ? decodeURIComponent(p[p.length - 1]) : "";
-  const thing = decodeURIComponent(
-    p.slice(1, hasName ? -1 : undefined).join(":") || "weird art",
-  );
-  const payload = who ? n + ":" + thing + ":" + who : n + ":" + thing;
-  const main = $("main");
-  if (sig !== H(payload)) {
-    main.innerHTML = "<p>nice try.</p>";
-  } else {
-    const p = document.createElement("p");
-    p.append(who || "someone", " made ", thing, document.createElement("br"));
-    p.append("for ", n, " ", n === "1" ? "day" : "days", " straight.");
-    main.replaceChildren(p);
-  }
-} else {
+{
   const t = $("t"),
     t2 = $("t2"),
     c = $("c"),
@@ -54,13 +29,8 @@ if (location.hash.startsWith("#x")) {
   const last = L.getItem("d");
   let streak = +L.getItem("n") || 0,
     hist = JSON.parse(L.getItem("h") || "[]");
-  const san = (s) =>
-    (s || "")
-      .replace(/[^a-zA-Z0-9 .,!?'\-]/g, "")
-      .trim()
-      .slice(0, 40) || "weird art";
   const save = (v) => {
-    const val = san(v);
+    const val = sanThing(v);
     t.textContent = t2.textContent = val;
     L.setItem("t", val);
   };
@@ -75,7 +45,7 @@ if (location.hash.startsWith("#x")) {
     t.removeAttribute("contenteditable");
     save(t.textContent.trim());
     if (doneToday)
-      api("/api/thing", { thing: san(t.textContent) }).catch(() => {});
+      api("/api/thing", { thing: sanThing(t.textContent) }).catch(() => {});
   };
   t.onkeydown = (e) => {
     if (e.key === "Enter") {
@@ -83,17 +53,14 @@ if (location.hash.startsWith("#x")) {
       t.blur();
     }
   };
-  const localDate = (s) => { const [y,m,d] = s.split("-"); return new Date(y,m-1,d); };
   let doneToday = last === today;
   function renderDots() {
     if (!hist.length && !streak && !last) {
-      dots.textContent = "";
+      dots.innerHTML = "";
       return;
     }
     const on = new Set(hist);
     // backfill missing dates only if hist is shorter than streak.
-    // this handles the edge case where history data is missing because
-    // check-ins were tracked differently in the past.
     if (streak > on.size && hist.length) {
       const end = localDate(hist[hist.length - 1]);
       for (let i = 1; on.size < streak; i++) {
@@ -103,24 +70,19 @@ if (location.hash.startsWith("#x")) {
       }
     }
     if (!on.size) {
-      dots.textContent = doneToday ? "" : "○";
+      dots.innerHTML = doneToday ? "" : '<span class="d">○</span>';
       return;
     }
     const sorted = [...on].sort();
     const loopEnd = doneToday ? sorted[sorted.length - 1] : today;
-    let m = 0,
-      h = "";
-    for (
-      let d = localDate(sorted[0]);
-      d <= localDate(loopEnd);
-      d.setDate(d.getDate() + 1)
-    ) {
+    let m = 0, spans = [];
+    for (let d = localDate(sorted[0]); d <= localDate(loopEnd); d.setDate(d.getDate() + 1)) {
       const ds = d.toLocaleDateString("en-CA");
-      if (on.has(ds)) { h += "●"; m = 0; }
-      else if (ds === today && !doneToday) h += "○";
-      else { m++; h += m >= 2 ? "×" : "·"; }
+      if (on.has(ds)) { spans.push('<span class="d">●</span>'); m = 0; }
+      else if (ds === today && !doneToday) spans.push('<span class="d">○</span>');
+      else { m++; spans.push('<span class="d">' + (m >= 2 ? "×" : "·") + '</span>'); }
     }
-    dots.textContent = h;
+    dots.innerHTML = spans.join("");
   }
   renderDots();
   function applyState(serverToday, checkedIn) {
@@ -138,7 +100,7 @@ if (location.hash.startsWith("#x")) {
       if (gap >= 3) {
         sub.textContent = "it's okay. start again whenever you're ready.";
       } else if (gap === 2) {
-        sub.textContent = "missed a day \u2014 you still got this.";
+        sub.textContent = "missed a day, but you still got this.";
       } else {
         sub.textContent = "use your hands. keep it simple.";
       }
@@ -179,7 +141,7 @@ if (location.hash.startsWith("#x")) {
     L.setItem("n", streak);
     L.setItem("h", JSON.stringify(hist));
     applyState(today, true);
-    api("/api/checkin", { thing: san(t.textContent) })
+    api("/api/checkin", { thing: sanThing(t.textContent) })
       .then((r) => r.json())
       .then((d) => {
         if (d.ok && d.streak != null && d.streak !== streak) {
@@ -193,24 +155,12 @@ if (location.hash.startsWith("#x")) {
   };
   tag.onclick = () => {
     if (streak < 1) return;
-    const name = L.getItem("username") || "",
-      thing = encodeURIComponent(t.textContent);
-    if (name) {
-      navigator.clipboard.writeText("https://" + name + ".makesweird.art");
-      const prev = tag.textContent;
-      tag.textContent = "copied!";
-      setTimeout(() => (tag.textContent = prev), 1200);
-      return;
-    }
-    const payload = streak + ":" + t.textContent + (name ? ":" + name : "");
-    const sig = H(payload),
-      nameEnc = name ? ":" + encodeURIComponent(name) : "";
-    navigator.clipboard.writeText(
-      location.origin + "#x" + streak + ":" + thing + nameEnc + "." + sig,
-    );
+    const name = L.getItem("username") || "";
+    if (!name) return;
+    navigator.clipboard.writeText("https://" + name + ".makesweird.art");
     const prev = tag.textContent;
     tag.textContent = "copied!";
     setTimeout(() => (tag.textContent = prev), 1200);
   };
 }
-{ const _u = L.getItem("username"); if (_u) { const a = $("pnav"); if (a) { a.href = "/u/" + _u; a.hidden = false; } } }
+initNav();

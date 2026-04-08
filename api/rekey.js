@@ -1,13 +1,5 @@
-import { redis, json, err, limit, auth, TOK_RE, TTL_ANON, TTL_NAMED } from "./_redis.js";
-
-const ADJ = ["bold","brave","calm","cool","cozy","cute","dark","deep","fair","fast","free","glad","gold","hazy","keen","kind","loud","lush","mild","neat","odd","pale","raw","shy","soft","warm","wild","swift","quiet","tiny","vast","wise","zany","silly","dumb","green","orange","happy","friendly","liminal","dorky","teal"];
-const NOUN = ["bear","bird","bone","cave","clay","crow","dawn","deer","dusk","fawn","fire","fish","frog","glow","hare","hawk","jade","lake","leaf","moth","mist","moss","newt","pine","reed","seed","snow","star","wren","yarn","wolf","owl","box","mouse","teddy","soy","beat","mlg","penguin","egg","oli","boo","sky","rain","stream","friend","weirdo","drawing"];
-const pick = (a) => a[(Math.random() * a.length) | 0];
-const genTok = () => {
-  const hex = Array.from(crypto.getRandomValues(new Uint8Array(8)))
-    .map((b) => b.toString(16).padStart(2, "0")).join("");
-  return pick(ADJ) + "-" + pick(NOUN) + "-" + (1000 + ((Math.random() * 9000) | 0)) + "-" + hex;
-};
+import { redis, json, err, limit, auth, TTL_ANON, TTL_NAMED } from "./_redis.js";
+import { genTok } from "./_token.js";
 
 export async function POST(req) {
   try {
@@ -21,8 +13,8 @@ export async function POST(req) {
     let newTok;
     for (let i = 0; i < 10; i++) {
       const candidate = genTok();
-      const exists = await redis.exists(`user:${candidate}`);
-      if (!exists) { newTok = candidate; break; }
+      const claimed = await redis.hsetnx(`user:${candidate}`, "registeredAt", user.registeredAt);
+      if (claimed) { newTok = candidate; break; }
     }
     if (!newTok) return err("server error", 500);
 
@@ -39,7 +31,7 @@ export async function POST(req) {
       thing: user.thing || "",
       bio: user.bio || "",
       css: user.css || "",
-      verb: user.verb || "",
+      links: user.links || "",
       tz: user.tz || "",
     });
     p.expire(`user:${newTok}`, ttl);
@@ -52,7 +44,16 @@ export async function POST(req) {
     }
 
     // update name index
-    if (user.name) p.set(`name:tok:${user.name}`, newTok);
+    if (user.name) {
+      p.set(`name:tok:${user.name}`, newTok);
+      p.expire(`name:tok:${user.name}`, ttl);
+    }
+
+    // migrate leaderboard entries
+    p.zrem("lb:streak", user.tok);
+    p.zadd("lb:streak", { score: +(user.streak) || 0, member: newTok });
+    p.zrem("lb:checkins", user.tok);
+    p.zadd("lb:checkins", { score: +(user.checkins) || 0, member: newTok });
 
     // delete old token
     p.del(`user:${user.tok}`);

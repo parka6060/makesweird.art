@@ -1,0 +1,18 @@
+{
+  "outputDirectory": "public",
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/u/:username/badge", "destination": "/badge" },
+    { "source": "/u/:username", "destination": "/u" },
+    { "source": "/u/", "destination": "/u" }
+  ],
+  "headers": [
+    {
+      "source": "/badge",
+      "headers": [
+        { "key": "X-Frame-Options", "value": "ALLOWALL" },
+        { "key": "Cache-Control", "value": "public, s-maxage=60, stale-while-revalidate=300" }
+      ]
+    }
+  ]
+}

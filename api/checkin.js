@@ -59,6 +59,7 @@ export async function POST(req) {
     const pipe = redis.pipeline();
     pipe.hset(`user:${user.tok}`, updates);
     pipe.zadd("lb:streak", { score: streak, member: user.tok });
+    pipe.zadd("lb:checkins", { score: updates.checkins, member: user.tok });
     pipe.sadd(`hist:${user.tok}`, today);
     pipe.expire(`user:${user.tok}`, ttl);
     pipe.expire(`hist:${user.tok}`, ttl);

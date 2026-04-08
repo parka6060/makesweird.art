@@ -2,19 +2,11 @@
 
 thank you for wanting to contribute to MWA. this document explains our philosophy and pull request process.
 
-# purpose & philosophy
-
-- purpose: the core of MWA is focused around daily ritual and community. it's not really about the streak, rather doing something everyday no matter how small or what it is.
-- footprint: changes should favour small sized (as small as you can get it) clear and unabstracted code that don't rely on new dependencies.
-- privacy: we avoid collectiong personal data.
-- community & social: features should help people make and share rituals! build a sense of community!
-
 # what to contribute
 
 - fixes: bugs, accessibility, performance, security, all is welcomed and desperately needed!
-- docs: readme, api documentation are all great!
-- small features: small improvements that are low risk, and alighed with minimal philosophy. eg. accessbility toggle, better focus states, ui ux improvements that don't bloat the code.
-- large features/new sections should be discussed via an issue first, please do not open a PR that adds major new functionality without prior discussion.
+- small features: small improvements that are low risk, and are miniaml. eg. accessbility toggle, better focus states, ui ux improvements that don't bloat the code.
+- large features/new sections should be discussed via an issue first, please do not open a PR that adds major new functionality without checking in w/ me.
 
 # styles & convention
 
@@ -24,7 +16,7 @@ thank you for wanting to contribute to MWA. this document explains our philosoph
 
 # pull request process
 
-1. ooen an Issue first for non-trivial changes (new pages, features, or anything that changes data handling). use the issue to discuss design, community, and privacy implications.
+1. ooen an Issue first for big changes (new pages, features, or anything that changes data handling). use the issue to discuss design, community, and privacy implications.
 2. create a branch from `main` with a descriptive name: `fix/<short-desc>` or `feat/<short-desc>`.
 3. keep PRs small please, this makes things easy to review.
 4. in the PR description include:
@@ -72,7 +64,7 @@ if you want to run the site while developing, there are two ways:
      - The API code expects a REST-style Upstash Redis URL and token. See Upstash docs for creating a Redis database and copying the REST credentials.
      - Chat uses PartyKit (a hosted websocket provider). The client currently points at a production PartyKit host; you can run the site without a PartyKit setup but chat will be read-only/offline unless you configure a PartyKit instance.
 
-   - Run locally with Vercel (serverless emulation)
+   - Run locally with vercel dev(serverless emulation)
 
    ```bash
    npm install

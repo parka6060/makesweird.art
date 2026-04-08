@@ -45,14 +45,13 @@
       ><a href="/chat">chat</a><a id="pnav" href="" hidden>profile</a
       ><a href="/about">about</a>
     </nav>
+    <script src="/src/util.js"></script>
     <script>
-      const t = localStorage.getItem("t");
-      if (t) document.getElementById("thing").textContent = t;
-      const _u = localStorage.getItem("username");
-      if (_u) {
-        const a = document.getElementById("pnav"); a.href = "/u/" + _u; a.hidden = false;
-        const cl = document.getElementById("prof-cl"); if (cl) cl.href = "/u/" + _u;
-      }
+      const t = L.getItem("t");
+      if (t) $("thing").textContent = t;
+      initNav();
+      const _u = L.getItem("username");
+      if (_u) { const cl = $("prof-cl"); if (cl) cl.href = "/u/" + _u; }
     </script>
   </body>
 </html>

@@ -1,5 +1,4 @@
-const L = localStorage,
-  $ = (id) => document.getElementById(id);
+// $, L, esc from util.js
 const tok = L.getItem("tok") || "";
 const myName = L.getItem("username") || "";
 const msgs = $("msgs"),
@@ -8,17 +7,23 @@ const msgs = $("msgs"),
 let lastSig = null,
   lastData = [],
   authed = false;
-
-function esc(s) {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
 function fmt(ts) {
   const d = new Date(ts);
   return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
+
+function msgHtml(m) {
+  const me = m.n === myName;
+  if (m.share)
+    return '<p class="m share"><span class="mt">' + fmt(m.ts) +
+      '</span><span class="mc">' + esc(m.t) + "</span></p>";
+  return '<p class="m' + (me ? " me" : "") +
+    '"><span class="mt">' + fmt(m.ts) +
+    '</span><span class="mc"><span class="mn">' +
+    (/^anon\d+$/.test(m.n) ? esc(m.n) : '<a href="/u/' + esc(m.n) + '" style="color:inherit">' + esc(m.n) + '</a>') +
+    ":</span> " + esc(m.t) + "</span></p>";
+}
+let lastRenderedDay = "";
 
 function render(data) {
   const sig = data.map((m) => m.ts).join("");
@@ -29,45 +34,39 @@ function render(data) {
   lastData = data;
   if (!data.length) {
     msgs.innerHTML = '<p class="sub">no messages yet.</p>';
+    lastRenderedDay = "";
     return;
   }
-  let lastDay = "",
-    html =
-      data.length >= 256
-        ? '<p class="sub" style="text-align:center">only the latest 256 messages are kept.</p>'
-        : "";
+  lastRenderedDay = "";
+  let html =
+    data.length >= 256
+      ? '<p class="sub" style="text-align:center">only the latest 256 messages are kept.</p>'
+      : "";
   for (const m of data) {
     const day = new Date(m.ts).toLocaleDateString("en-CA");
-    if (day !== lastDay) {
-      const label = new Date(m.ts).toLocaleDateString([], {
-        month: "short",
-        day: "numeric",
-      });
+    if (day !== lastRenderedDay) {
+      const label = new Date(m.ts).toLocaleDateString([], { month: "short", day: "numeric" });
       html += '<p class="day">' + label + "</p>";
-      lastDay = day;
+      lastRenderedDay = day;
     }
-    const me = m.n === myName;
-    if (m.share) {
-      html +=
-        '<p class="m share"><span class="mt">' +
-        fmt(m.ts) +
-        '</span><span class="mc">' +
-        esc(m.t) +
-        "</span></p>";
-    } else {
-      html +=
-        '<p class="m' +
-        (me ? " me" : "") +
-        '"><span class="mt">' +
-        fmt(m.ts) +
-        '</span><span class="mc"><span class="mn">' +
-        (/^anon\d+$/.test(m.n) ? esc(m.n) : '<a href="/u/' + esc(m.n) + '" style="color:inherit">' + esc(m.n) + '</a>') +
-        ":</span> " +
-        esc(m.t) +
-        "</span></p>";
-    }
+    html += msgHtml(m);
   }
   msgs.innerHTML = html;
+  if (atBottom) msgs.scrollTop = msgs.scrollHeight;
+}
+
+function appendMsg(m) {
+  const atBottom = msgs.scrollHeight - msgs.scrollTop - msgs.clientHeight < 60;
+  const day = new Date(m.ts).toLocaleDateString("en-CA");
+  let html = "";
+  if (day !== lastRenderedDay) {
+    const label = new Date(m.ts).toLocaleDateString([], { month: "short", day: "numeric" });
+    html += '<p class="day">' + label + "</p>";
+    lastRenderedDay = day;
+  }
+  html += msgHtml(m);
+  lastSig = lastData.map((m) => m.ts).join("");
+  msgs.insertAdjacentHTML("beforeend", html);
   if (atBottom) msgs.scrollTop = msgs.scrollHeight;
 }
 
@@ -98,7 +97,7 @@ function connectWS() {
       render(lastData);
     } else if (data.t === "m") {
       lastData = [...lastData, data.msg].slice(-256);
-      render(lastData);
+      appendMsg(data.msg);
     } else if (data.t === "clear") {
       lastSig = null;
       lastData = [];
@@ -164,7 +163,10 @@ inp.onkeydown = (e) => {
         Authorization: "Bearer " + tok,
       },
       body: JSON.stringify({ name: ban[2], unban: !!ban[1] }),
-    }).then((r) => r.json());
+    }).then((r) => r.json()).then(d => {
+      inp.placeholder = d.error || (d.banned ? "banned " + d.banned : "unbanned " + d.unbanned);
+      setTimeout(() => inp.placeholder = "say something...", 2000);
+    });
     return;
   }
 
@@ -175,4 +177,4 @@ inp.onkeydown = (e) => {
   cc.textContent = 256;
 };
 
-{ const _u = L.getItem("username"); if (_u) { const a = $("pnav"); if (a) { a.href = "/u/" + _u; a.hidden = false; } } }
+initNav();

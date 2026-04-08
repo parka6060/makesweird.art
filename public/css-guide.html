@@ -1,0 +1,251 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>mwa > css guide</title>
+    <link rel="stylesheet" href="/src/style.css" />
+    <style>
+      .guide { width: 100%; max-width: 480px; text-align: left; }
+      .guide p { margin: 0 0 .6rem; }
+      .guide pre {
+        background: #271a0808;
+        padding: .5rem .6rem;
+        font-size: .72rem;
+        line-height: 1.5;
+        overflow-x: auto;
+        margin: .3rem 0 .8rem;
+      }
+      .guide code { font-size: .8em; }
+      .demo {
+        border: 1px dashed #271a0830;
+        padding: .6rem;
+        margin: .3rem 0 .1rem;
+        font-size: .85rem;
+        overflow: hidden;
+      }
+      .demo strong { font-weight: bold; }
+      .demo .sub { opacity: .4; }
+      .demo .dd { display: flex; flex-wrap: wrap; line-height: 1; margin: .3rem 0; }
+      .demo .dd .d { display: inline-block; width: 1.1em; text-align: center; opacity: .7; }
+      .sep { margin: 1.5rem 0 .8rem; opacity: .3; border: none; border-top: 1px dashed; }
+    </style>
+  </head>
+  <body>
+    <main class="guide">
+      <p><a href="/about">makesweird.art</a> css guide</p>
+      <p>This page is a super quick intro into customizing your profile, it also provides some templates for you to get started! </p>
+      <p>So you want to customize your profile? great! You can do so via CSS.
+        Your profile has a custom css field near the bottom. Whatever you type there changes how your profile looks.
+        If you've never written css before, don't worry! It's very simple and fun to play around with.
+      </p>
+
+      <p>The pattern is always: <em>what</em> { <em>property</em>: <em>value</em>; }</p>
+
+      <hr class="sep">
+
+      <p>To change the background and text color of your whole page:</p>
+      <div class="demo" style="background:#1a1a2e;color:#e0d8c8">
+        <p><strong>yourname</strong> makes weird art.</p>
+        <p class="sub">streak: 3 · 7 logged</p>
+      </div>
+<pre>body {
+  background: #1a1a2e;
+  color: #e0d8c8;
+}</pre>
+
+      <p>make your username a different color:</p>
+      <div class="demo">
+        <p><strong style="color:#ff9500">yourname</strong> makes weird art.</p>
+      </div>
+<pre>#uname { color: #ff9500; }</pre>
+
+      <p>style your bio text:</p>
+      <div class="demo" style="font-style:italic;line-height:1.8;opacity:.7">
+        <p>i love making weird art, the weirder the better!</p>
+      </div>
+<pre>#bio {
+  font-style: italic;
+  line-height: 1.8;
+  opacity: .7;
+}</pre>
+
+      <p>turn your links into buttons:</p>
+      <div class="demo">
+        <div style="display:flex;flex-direction:column;gap:.3rem">
+          <a href="#" style="display:block;background:#ff9500;color:#1a1a1a;padding:.5rem 1rem;text-decoration:none;text-align:center;font-family:monospace;font-size:.8rem">instagram</a>
+          <a href="#" style="display:block;background:#ff9500;color:#1a1a1a;padding:.5rem 1rem;text-decoration:none;text-align:center;font-family:monospace;font-size:.8rem">portfolio</a>
+        </div>
+      </div>
+<pre>#links a {
+  display: block;
+  background: #ff9500;
+  color: #1a1a1a;
+  padding: .5rem 1rem;
+  text-decoration: none;
+  text-align: center;
+}
+#links a:hover { background: #ffb040; }</pre>
+
+      <p>color your dots:</p>
+      <div class="demo">
+        <div class="dd" style="color:#2a7a30">
+          <span class="d">●</span><span class="d">●</span><span class="d">·</span><span class="d">×</span><span class="d">×</span><span class="d">×</span><span class="d">●</span><span class="d">●</span><span class="d">●</span><span class="d">·</span><span class="d">×</span><span class="d">●</span><span class="d">●</span><span class="d">●</span><span class="d">●</span><span class="d">·</span><span class="d">●</span><span class="d">●</span>
+        </div>
+        <p style="font-size:.65rem;opacity:.35;margin:0">● checked in · missed one × missed two+</p>
+      </div>
+<pre>#dots { color: #2a7a30; }</pre>
+
+      <p>hide things you don't want to show:</p>
+<pre>#plink { display: none; }
+#dots { display: none; }</pre>
+
+      <hr class="sep">
+
+      <p>templates! here are a few simple templates for you to get started with:</p>
+
+      <p class="sub" style="margin-top:1rem">linktree</p>
+      <div class="demo" style="background:#0e0e0e;color:#fff;padding:1rem;font-family:system-ui,-apple-system,sans-serif;text-align:center">
+        <p style="font-size:1rem;font-weight:600;margin-bottom:.1rem">yourname</p>
+        <p style="opacity:.5;font-size:.75rem;margin-bottom:.6rem">makes weird art.</p>
+        <div style="display:flex;flex-direction:column;gap:.4rem;margin-bottom:.6rem">
+          <a href="https://instagram.com/eninabox" style="display:block;background:#fff;color:#0e0e0e;padding:.6rem;text-decoration:none;border-radius:8px;font-size:.8rem;font-weight:500">instagram</a>
+          <a href="#" style="display:block;background:#fff;color:#0e0e0e;padding:.6rem;text-decoration:none;border-radius:8px;font-size:.8rem;font-weight:500">portfolio</a>
+          <a href="#" style="display:block;background:#fff;color:#0e0e0e;padding:.6rem;text-decoration:none;border-radius:8px;font-size:.8rem;font-weight:500">shop</a>
+        </div>
+        <div class="dd" style="justify-content:center;opacity:.3;margin:.3rem 0">
+          <span class="d">●</span><span class="d">●</span><span class="d">·</span><span class="d">×</span><span class="d">●</span><span class="d">●</span><span class="d">●</span><span class="d">·</span><span class="d">●</span><span class="d">●</span>
+        </div>
+        <p style="opacity:.3;font-size:.65rem;margin:0">x5 streak · 12 logged</p>
+      </div>
+<pre>body {
+  background: #0e0e0e;
+  color: #fff;
+  font-family: system-ui, sans-serif;
+  text-align: center;
+}
+#uname {
+  font-size: 1.4rem;
+  display: block;
+}
+#tagline { font-size: .8rem; opacity: .5; }
+#links { margin: .8rem 0; }
+#links a {
+  display: block;
+  background: #fff;
+  color: #0e0e0e;
+  padding: .65rem 1rem;
+  text-decoration: none;
+  border-radius: 8px;
+  font-weight: 500;
+  margin-bottom: .4rem;
+}
+#links a:hover {
+  background: #e0e0e0;
+}
+#dots { opacity: .3; justify-content: center; }
+.sub { font-size: .7rem; }</pre>
+
+      <p class="sub" style="margin-top:1rem">pastel</p>
+      <div class="demo" style="background:#fdf0e2;color:#6b5c4c;padding:1rem;font-family:'Palatino',Georgia,serif">
+        <p><strong style="color:#d4837a;font-size:1rem">yourname</strong> <span style="opacity:.6">makes weird art.</span></p>
+        <p style="font-style:italic;line-height:1.7;font-size:.85rem;margin:.5rem 0;color:#8b7b6b">i draw things that feel like dreaming.</p>
+        <div style="display:flex;flex-direction:column;gap:.3rem;margin:.5rem 0">
+          <a href="https://instagram.com/eninabox" style="display:block;background:#d4837a30;color:#d4837a;padding:.45rem .8rem;text-decoration:none;font-size:.78rem;border-radius:20px;text-align:center;font-family:Palatino,Georgia,serif">instagram</a>
+          <a href="https://eninabox.art" style="display:block;background:#d4837a30;color:#d4837a;padding:.45rem .8rem;text-decoration:none;font-size:.78rem;border-radius:20px;text-align:center;font-family:Palatino,Georgia,serif">prints</a>
+        </div>
+        <div class="dd" style="color:#d4837a;margin:.4rem 0;justify-content:center">
+          <span class="d">●</span><span class="d">●</span><span class="d">·</span><span class="d">×</span><span class="d">×</span><span class="d">●</span><span class="d">●</span><span class="d">●</span><span class="d">·</span><span class="d">●</span><span class="d">●</span><span class="d">●</span>
+        </div>
+        <p style="opacity:.4;font-size:.7rem;margin:0;text-align:center">streak: 7 · 18 logged</p>
+      </div>
+<pre>body {
+  background: #fdf0e2;
+  color: #6b5c4c;
+  font-family: Palatino, Georgia, serif;
+}
+#uname { color: #d4837a; font-size: 1.2rem; }
+#tagline { opacity: .6; }
+#bio {
+  font-style: italic;
+  line-height: 1.7;
+  color: #8b7b6b;
+}
+#links a {
+  display: block;
+  background: #d4837a30;
+  color: #d4837a;
+  padding: .45rem .8rem;
+  text-decoration: none;
+  border-radius: 20px;
+  text-align: center;
+  margin-bottom: .3rem;
+}
+#links a:hover { background: #d4837a50; }
+#dots { color: #d4837a; justify-content: center; }</pre>
+
+      <p class="sub" style="margin-top:1rem">darkroom</p>
+      <div class="demo" style="background:#1a1714;color:#a89a85;padding:1rem;font-family:'Courier New',monospace;border:1px solid #a89a8520">
+        <p style="text-transform:uppercase;letter-spacing:.15em;font-size:.65rem;opacity:.4;margin-bottom:.3rem">/// profile</p>
+        <p><strong style="color:#c8a96e">yourname</strong> <span style="opacity:.5">makes weird art.</span></p>
+        <p style="font-size:.8rem;line-height:1.7;margin:.5rem 0;opacity:.6">scratching at things in the dark.</p>
+        <div style="display:flex;flex-direction:column;gap:.25rem;margin:.5rem 0">
+          <a href="#" style="color:#c8a96e;font-size:.75rem;text-decoration:none;font-family:'Courier New',monospace;opacity:.7">[ instagram ]</a>
+          <a href="#" style="color:#c8a96e;font-size:.75rem;text-decoration:none;font-family:'Courier New',monospace;opacity:.7">[ are.na ]</a>
+        </div>
+        <div class="dd" style="color:#c8a96e;margin:.5rem 0;opacity:.4">
+          <span class="d">●</span><span class="d">●</span><span class="d">·</span><span class="d">×</span><span class="d">×</span><span class="d">×</span><span class="d">●</span><span class="d">●</span><span class="d">●</span><span class="d">·</span><span class="d">●</span><span class="d">●</span><span class="d">●</span><span class="d">●</span>
+        </div>
+        <p style="opacity:.25;font-size:.65rem;margin:0">streak: 8 · 30 logged</p>
+      </div>
+<pre>body {
+  background: #1a1714;
+  color: #a89a85;
+  font-family: 'Courier New', monospace;
+}
+#uname { color: #c8a96e; }
+#tagline { opacity: .5; }
+#bio { opacity: .6; line-height: 1.7; }
+#links a {
+  color: #c8a96e;
+  text-decoration: none;
+  opacity: .7;
+  font-size: .85rem;
+}
+#links a::before { content: "[ "; }
+#links a::after { content: " ]"; }
+#links a:hover { opacity: 1; }
+#dots { color: #c8a96e; opacity: .4; }
+.sub { opacity: .25; }</pre>
+
+      <hr class="sep">
+
+      <p>your badge (the embeddable iframe) shares your css automatically. to style it differently, use <code>.badge</code>:</p>
+<pre>.badge #name { color: #ff9500; }
+.badge #streak { color: #ff9500; }
+.badge #meta a { color: #ff9500; }</pre>
+
+      <p>embed it on your own site:</p>
+<pre>&lt;iframe
+  src="https://makesweird.art/u/yourname/badge"
+  width="380" height="100"
+  frameborder="0" scrolling="no"
+&gt;&lt;/iframe&gt;</pre>
+
+      <hr class="sep">
+
+      <p class="sub">2048 character limit. dots use currentColor — set color on #dots to change them all at once.</p>
+
+      <p class="sub">new to css? <a href="https://developer.mozilla.org/en-US/docs/Learn/CSS/First_steps" style="color:inherit">mdn has a great beginner guide</a>.
+        <a href="https://htmlcolorcodes.com" style="color:inherit">htmlcolorcodes.com</a> is handy for picking colors.</p>
+
+    </main>
+    <nav id="nav">
+      <a href="/">home</a><a href="/leaderboard">leaderboard</a
+      ><a href="/chat">chat</a><a id="pnav" href="" hidden>profile</a
+      ><a href="/about">about</a>
+    </nav>
+    <script src="/src/util.js"></script>
+    <script>initNav();</script>
+  </body>
+</html>
