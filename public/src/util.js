@@ -22,7 +22,7 @@ function renderDotGrid(hist, toToday) {
   for (let d = localDate(sorted[0]); d <= localDate(end); d.setDate(d.getDate() + 1)) {
     const ds = d.toLocaleDateString("en-CA");
     if (on.has(ds)) { spans.push('<span class="d">●</span>'); miss = 0; }
-    else { miss++; if (miss > 14) continue; spans.push('<span class="d">' + (miss >= 2 ? "×" : "·") + '</span>'); }
+    else { miss++; spans.push('<span class="d">' + (miss >= 2 ? "×" : "·") + '</span>'); }
   }
   return spans.join("");
 }

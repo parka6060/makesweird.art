@@ -31,6 +31,7 @@
           username.makesweird.art. write a bio, embed images, write custom css to make
           it your own. use it as a bio link, or a business card! key management moved to your profile.
           click a username on the leaderboard or in chat to visit their page.</p>
+        <p>embeddable <a href="" id="badge-cl">badges</a>.
         <p class="v">v1.2026.february</p>
         <p>initial release. added <a href="/chat">live chat</a>,
           streaks, leaderboard.</p>
@@ -51,7 +52,10 @@
       if (t) $("thing").textContent = t;
       initNav();
       const _u = L.getItem("username");
-      if (_u) { const cl = $("prof-cl"); if (cl) cl.href = "/u/" + _u; }
+      if (_u) {
+        const cl = $("prof-cl"); if (cl) cl.href = "/u/" + _u;
+        const bl = $("badge-cl"); if (bl) bl.href = "/u/" + _u + "/badge";
+      }
     </script>
   </body>
 </html>

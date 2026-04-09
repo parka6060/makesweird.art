@@ -157,7 +157,7 @@ fetch("/api/user?u=" + encodeURIComponent(un))
         "<p style='margin:0 0 .3rem'><span id='css-toggle' class='sub' style='cursor:pointer;font-size:.8rem'>custom css ···</span> <span id='css-count' class='sub' style='font-size:.75rem' hidden></span></p>" +
         "<div id='css-area' hidden>" +
         "<textarea id='css-inp' rows='5' maxlength='2048' placeholder='body { background: hotpink; }' style='" + TA + ";font-size:.75rem'>" + esc(u.css) + "</textarea>" +
-        "<p class='sub' style='font-size:.65rem;margin:.2rem 0 0;line-height:1.6'><a href='/css-guide' style='color:inherit'>css guide</a></p>" +
+        "<p class='sub' style='font-size:.65rem;margin:.2rem 0 0;line-height:1.6'><a href='/css-guide' style='color:inherit'>css guide</a> · <span id='blink' style='cursor:pointer;border-bottom:1px dashed;color:inherit'>copy badge embed</span></p>" +
         "<p id='profile-msg' style='font-size:.75rem;color:#b33;margin:.1rem 0 0'></p>" +
         "</div>" +
         "<p style='margin:.4rem 0 .2rem'><span id='kl' class='sub' style='cursor:pointer;font-size:.8rem'>your key ···</span></p>" +
@@ -287,6 +287,13 @@ function setupCSS(initCSS) {
   const toggle = $("css-toggle"), area = $("css-area");
   const cssInp = $("css-inp"), cssCount = $("css-count"), msg = $("profile-msg");
   cssCount.textContent = (initCSS || "").length + "/2048";
+  $("blink").onclick = () => {
+    const code = '<iframe src="https://makesweird.art/u/' + un + '/badge" width="380" height="110" frameborder="0" scrolling="no"></iframe>';
+    navigator.clipboard.writeText(code);
+    const el = $("blink"), p = el.textContent;
+    el.textContent = "copied!";
+    setTimeout(() => el.textContent = p, 1200);
+  };
   toggle.onclick = () => {
     area.hidden = !area.hidden;
     toggle.textContent = area.hidden ? "custom css ···" : "custom css ▾";
