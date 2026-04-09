@@ -88,8 +88,15 @@ if (!un) {
     $("main").innerHTML =
       "<p id='tagline'><strong id='uname' class='sub'>click to set username</strong> makes weird art.</p>" +
       "<p id='name-msg' style='font-size:.75rem;color:#b33;margin:.25rem 0'></p>" +
-      "<p class='sub'>your profile page will live here once you set a username.</p>";
+      "<p class='sub'>your profile page will live here once you set a username.</p>" +
+      "<p style='margin:.8rem 0 .2rem'><span id='kl' class='sub' style='cursor:pointer;font-size:.8rem'>your key ···</span></p>" +
+      "<div id='key-body' hidden style='font-size:.8rem'>" +
+      "<p style='margin:0 0 .4rem;color:#b33;font-size:.75rem'>⚠ save this key somewhere safe. it's the only way to recover your account — there's no email reset.</p>" +
+      "<span id='ktok' style='cursor:pointer'>" + esc(tok) + "</span>" +
+      " <span id='km' style='font-size:.9em'></span>" +
+      "</div>";
     setupNameEdit("");
+    setupKey();
   }
   throw null;
 }
