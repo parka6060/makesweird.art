@@ -2,7 +2,7 @@
 const un = location.pathname.split("/").filter(Boolean)[1] || "";
 document.title = "mwa > " + un;
 const myName = L.getItem("username") || "";
-const tok = L.getItem("tok") || "";
+let tok = L.getItem("tok") || "";
 const isOwner = myName === un;
 if (tok) { const a = $("pnav"); a.href = myName ? "/u/" + myName : "/u/"; a.hidden = false; }
 
@@ -338,6 +338,7 @@ function setupKey() {
     km.textContent = "regenerating...";
     api("/api/rekey", {}).then(r => r.json()).then(d => {
       if (d.error) { km.textContent = d.error; return; }
+      tok = d.id;
       L.setItem("tok", d.id);
       ktok.textContent = d.id;
       ktok.style.color = "#3a6a9b";
@@ -374,7 +375,7 @@ function doImport(km) {
       L.setItem("n", d.streak);
       if (d.hist && d.hist.length) L.setItem("h", JSON.stringify(d.hist));
       km.textContent = "imported! reloading...";
-      setTimeout(() => location.reload(), 800);
+      setTimeout(() => { location.href = d.name ? "/u/" + d.name : "/u/"; }, 800);
     }).catch(() => km.textContent = "error");
   };
 }
